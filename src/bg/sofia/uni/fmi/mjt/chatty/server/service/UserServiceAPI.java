@@ -1,6 +1,8 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyExistsException;
+import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
+import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 
 import java.util.Collection;
@@ -14,14 +16,14 @@ public interface UserServiceAPI {
 
     Collection<User> getFriends(String username);
 
-    void addFriend(User sender, String targetUsername);
+    void addFriend(User sender, String targetUsername) throws ValueNotFoundException, UserBlockedException;
 
-    void acceptRequest(User accepter, String targetUsername);
+    void acceptRequest(User accepter, String targetUsername) throws ValueNotFoundException;
 
-    void rejectRequest(User rejecter, String targetUsername);
+    void rejectRequest(User rejecter, String targetUsername) throws ValueNotFoundException;
 
-    void block(User blocker, String blockedUsername);
+    void block(User blocker, String blockedUsername) throws ValueNotFoundException;
 
-    void unblock(User unblocker, String unblockedUsername);
+    void unblock(User unblocker, String unblockedUsername) throws ValueNotFoundException;
 
 }

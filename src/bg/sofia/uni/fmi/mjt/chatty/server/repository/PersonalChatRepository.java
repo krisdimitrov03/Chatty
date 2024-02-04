@@ -7,12 +7,16 @@ import java.io.Reader;
 
 public class PersonalChatRepository extends Repository<PersonalChat> {
 
-    public PersonalChatRepository() {
-        super();
+    private static final String DB_PATH = "";
+
+    private static final PersonalChatRepository instance = new PersonalChatRepository(DB_PATH);
+
+    private PersonalChatRepository(String path) {
+        super(path);
     }
 
-    public PersonalChatRepository(String path) {
-        super(path);
+    public static PersonalChatRepository getInstance() {
+        return instance;
     }
 
 }
