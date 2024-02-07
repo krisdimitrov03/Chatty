@@ -7,6 +7,7 @@ import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public interface UserServiceAPI {
 
@@ -14,16 +15,10 @@ public interface UserServiceAPI {
 
     Optional<User> login(String username, String password);
 
-    Collection<User> getFriends(String username);
+    User ensureUserExists(User user) throws ValueNotFoundException;
 
-    void addFriend(User sender, String targetUsername) throws ValueNotFoundException, UserBlockedException;
+    User ensureUserExists(String username) throws ValueNotFoundException;
 
-    void acceptRequest(User accepter, String targetUsername) throws ValueNotFoundException;
-
-    void rejectRequest(User rejecter, String targetUsername) throws ValueNotFoundException;
-
-    void block(User blocker, String blockedUsername) throws ValueNotFoundException;
-
-    void unblock(User unblocker, String unblockedUsername) throws ValueNotFoundException;
+    Collection<User> getByCriteria(Predicate<User> criteria);
 
 }
