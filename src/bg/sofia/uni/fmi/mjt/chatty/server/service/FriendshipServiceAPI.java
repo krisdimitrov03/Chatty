@@ -18,4 +18,6 @@ public interface FriendshipServiceAPI {
 
     void declineRequest(User decliner, String targetUsername) throws ValueNotFoundException;
 
+    public void ensureFriendshipExists(User left, User right) throws ValueNotFoundException;
+
 }

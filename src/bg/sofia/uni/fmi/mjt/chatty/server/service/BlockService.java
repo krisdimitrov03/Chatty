@@ -4,23 +4,13 @@ import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.BlockRepository;
-import bg.sofia.uni.fmi.mjt.chatty.server.repository.RepositoryAPI;
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
 public class BlockService implements BlockServiceAPI {
 
     private static BlockServiceAPI instance;
 
-    private final RepositoryAPI<Block> blockRepo;
-
-    private final FriendshipServiceAPI friendshipService;
-
-    private final UserServiceAPI userService;
-
     private BlockService() {
-        blockRepo = BlockRepository.getInstance();
-        userService = UserService.getInstance();
-        friendshipService = FriendshipService.getInstance();
     }
 
     public static BlockServiceAPI getInstance() {
@@ -36,14 +26,14 @@ public class BlockService implements BlockServiceAPI {
         Guard.isNotNull(blocker);
         Guard.isNotNull(blockedUsername);
 
-        User blockerUser = userService.ensureUserExists(blocker);
-        User blockedUser = userService.ensureUserExists(blockedUsername);
+        User blockerUser = UserService.getInstance().ensureUserExists(blocker);
+        User blockedUser = UserService.getInstance().ensureUserExists(blockedUsername);
 
-        friendshipService.removeFriend(blocker, blockedUsername);
+        FriendshipService.getInstance().removeFriend(blocker, blockedUsername);
 
-        // TODO: remove personal chat
+        ChatService.getInstance().deletePersonalChat(blockerUser.username(), blockedUsername);
 
-        blockRepo.add(new Block(blockerUser, blockedUser));
+        BlockRepository.getInstance().add(new Block(blockerUser, blockedUser));
     }
 
     @Override
@@ -51,15 +41,17 @@ public class BlockService implements BlockServiceAPI {
         Guard.isNotNull(unblocker);
         Guard.isNotNull(unblockedUsername);
 
-        User unblockerUser = userService.ensureUserExists(unblocker);
-        User unblockedUser = userService.ensureUserExists(unblockedUsername);
+        User unblockerUser = UserService.getInstance().ensureUserExists(unblocker);
+        User unblockedUser = UserService.getInstance().ensureUserExists(unblockedUsername);
 
-        blockRepo.remove(b -> b.blocker().equals(unblockerUser) && b.blocked().equals(unblockedUser));
+        BlockRepository.getInstance()
+            .remove(b -> b.blocker().equals(unblockerUser) && b.blocked().equals(unblockedUser));
     }
 
     @Override
     public boolean checkBlock(User blocker, User blocked) {
-        return blockRepo.contains(b -> b.blocker().equals(blocker) && b.blocked().equals(blocked));
+        return BlockRepository.getInstance()
+            .contains(b -> b.blocker().equals(blocker) && b.blocked().equals(blocked));
     }
 
 }

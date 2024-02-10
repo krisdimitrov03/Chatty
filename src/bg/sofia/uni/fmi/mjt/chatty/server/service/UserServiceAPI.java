@@ -1,13 +1,11 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
 import bg.sofia.uni.fmi.mjt.chatty.dto.Session;
-import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 
 import java.util.Collection;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 public interface UserServiceAPI {

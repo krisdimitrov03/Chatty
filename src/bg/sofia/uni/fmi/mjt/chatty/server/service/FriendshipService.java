@@ -20,23 +20,7 @@ public class FriendshipService implements FriendshipServiceAPI {
 
     private static FriendshipServiceAPI instance;
 
-    private final RepositoryAPI<Friendship> friendshipRepo;
-
-    private final RepositoryAPI<FriendRequest> friendRequestRepo;
-
-    private final RepositoryAPI<PersonalChat> personalChatRepo;
-
-    private final RepositoryAPI<Block> blockRepo;
-
-    private final UserServiceAPI userService;
-
     private FriendshipService() {
-        friendshipRepo = FriendshipRepository.getInstance();
-        friendRequestRepo = FriendRequestRepository.getInstance();
-        personalChatRepo = PersonalChatRepository.getInstance();
-        blockRepo = BlockRepository.getInstance();
-
-        userService = UserService.getInstance();
     }
 
     public static FriendshipServiceAPI getInstance() {
@@ -51,10 +35,11 @@ public class FriendshipService implements FriendshipServiceAPI {
     public Collection<User> getFriendsOf(User user) throws ValueNotFoundException {
         Guard.isNotNull(user);
 
-        userService.ensureUserExists(user);
+        UserService.getInstance().ensureUserExists(user);
 
-        return userService.getByCriteria(
-            u -> friendshipRepo.contains(f -> f.containsUser(user) && f.containsUser(u) && !user.equals(u))
+        return UserService.getInstance().getByCriteria(
+            u -> FriendshipRepository.getInstance()
+                .contains(f -> f.containsUser(user) && f.containsUser(u) && !user.equals(u))
         );
     }
 
@@ -63,18 +48,19 @@ public class FriendshipService implements FriendshipServiceAPI {
         Guard.isNotNull(sender);
         Guard.isNotNull(targetUsername);
 
-        User senderUser = userService.ensureUserExists(sender);
-        User targetUser = userService.ensureUserExists(targetUsername);
+        User senderUser = UserService.getInstance().ensureUserExists(sender);
+        User targetUser = UserService.getInstance().ensureUserExists(targetUsername);
 
-        if (blockRepo.contains(b -> b.blocker().equals(targetUser) && b.blocked().equals(senderUser))) {
+        if (BlockService.getInstance().checkBlock(targetUser, senderUser)) {
             throw new UserBlockedException("Sender blocked by target user");
         }
 
-        if (blockRepo.contains(b -> b.blocker().equals(senderUser) && b.blocked().equals(targetUser))) {
+        if (BlockService.getInstance().checkBlock(senderUser, targetUser)) {
             throw new UserBlockedException("Sender has blocked target user");
         }
 
-        friendRequestRepo.add(new FriendRequest(senderUser, targetUser));
+        FriendRequestRepository.getInstance()
+            .add(new FriendRequest(senderUser, targetUser));
     }
 
     @Override
@@ -82,12 +68,12 @@ public class FriendshipService implements FriendshipServiceAPI {
         Guard.isNotNull(remover);
         Guard.isNotNull(targetUsername);
 
-        User removerUser = userService.ensureUserExists(remover);
-        User targetUser = userService.ensureUserExists(targetUsername);
+        User removerUser = UserService.getInstance().ensureUserExists(remover);
+        User targetUser = UserService.getInstance().ensureUserExists(targetUsername);
 
         ensureFriendshipExists(removerUser, targetUser);
 
-        friendshipRepo.remove(
+        FriendshipRepository.getInstance().remove(
             f -> f.containsUser(removerUser) && f.containsUser(targetUser)
         );
     }
@@ -97,13 +83,14 @@ public class FriendshipService implements FriendshipServiceAPI {
         Guard.isNotNull(accepter);
         Guard.isNotNull(targetUsername);
 
-        User accepterUser = userService.ensureUserExists(accepter);
-        User targetUser = userService.ensureUserExists(targetUsername);
+        User accepterUser = UserService.getInstance().ensureUserExists(accepter);
+        User targetUser = UserService.getInstance().ensureUserExists(targetUsername);
 
-        friendshipRepo.add(new Friendship(targetUser, accepterUser));
-        personalChatRepo.add(new PersonalChat(targetUser, accepterUser));
+        FriendshipRepository.getInstance().add(new Friendship(targetUser, accepterUser));
+        PersonalChatRepository.getInstance().add(new PersonalChat(targetUser, accepterUser));
 
-        friendRequestRepo.remove(f -> f.sender().equals(targetUser) && f.receiver().equals(accepterUser));
+        FriendRequestRepository.getInstance()
+            .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(accepterUser));
     }
 
     @Override
@@ -111,15 +98,17 @@ public class FriendshipService implements FriendshipServiceAPI {
         Guard.isNotNull(decliner);
         Guard.isNotNull(targetUsername);
 
-        User declinerUser = userService.ensureUserExists(decliner);
-        User targetUser = userService.ensureUserExists(targetUsername);
+        User declinerUser = UserService.getInstance().ensureUserExists(decliner);
+        User targetUser = UserService.getInstance().ensureUserExists(targetUsername);
 
-        friendRequestRepo.remove(f -> f.sender().equals(targetUser) && f.receiver().equals(declinerUser));
+        FriendRequestRepository.getInstance()
+            .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(declinerUser));
     }
 
-    private void ensureFriendshipExists(User left, User right) throws ValueNotFoundException {
+    @Override
+    public void ensureFriendshipExists(User left, User right) throws ValueNotFoundException {
 
-        if (!friendshipRepo.contains(f -> f.containsUser(left) && f.containsUser(right))) {
+        if (!FriendshipRepository.getInstance().contains(f -> f.containsUser(left) && f.containsUser(right))) {
             throw new ValueNotFoundException("Friendship between users does not exist.");
         }
 
