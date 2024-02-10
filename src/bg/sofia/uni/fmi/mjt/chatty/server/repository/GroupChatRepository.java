@@ -4,15 +4,19 @@ import bg.sofia.uni.fmi.mjt.chatty.server.model.GroupChat;
 
 public class GroupChatRepository extends Repository<GroupChat> {
 
-    private static final String DB_PATH = "";
+    private static final String DB_PATH = "group_chats.dat";
 
-    private static final GroupChatRepository instance = new GroupChatRepository(DB_PATH);
+    private static GroupChatRepository instance;
 
     private GroupChatRepository(String path) {
         super(path);
     }
 
     public static GroupChatRepository getInstance() {
+        if(instance == null) {
+            instance = new GroupChatRepository(DB_PATH);
+        }
+
         return instance;
     }
 

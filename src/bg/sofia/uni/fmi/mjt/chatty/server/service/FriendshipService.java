@@ -2,10 +2,12 @@ package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.FriendRequest;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Friendship;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.PersonalChat;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
+import bg.sofia.uni.fmi.mjt.chatty.server.repository.BlockRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.FriendRequestRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.FriendshipRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.PersonalChatRepository;
@@ -16,23 +18,33 @@ import java.util.Collection;
 
 public class FriendshipService implements FriendshipServiceAPI {
 
+    private static FriendshipServiceAPI instance;
+
     private final RepositoryAPI<Friendship> friendshipRepo;
 
     private final RepositoryAPI<FriendRequest> friendRequestRepo;
 
     private final RepositoryAPI<PersonalChat> personalChatRepo;
 
+    private final RepositoryAPI<Block> blockRepo;
+
     private final UserServiceAPI userService;
 
-    private final BlockServiceAPI blockService;
-
-    public FriendshipService() {
+    private FriendshipService() {
         friendshipRepo = FriendshipRepository.getInstance();
         friendRequestRepo = FriendRequestRepository.getInstance();
         personalChatRepo = PersonalChatRepository.getInstance();
+        blockRepo = BlockRepository.getInstance();
 
-        userService = new UserService();
-        blockService = new BlockService();
+        userService = UserService.getInstance();
+    }
+
+    public static FriendshipServiceAPI getInstance() {
+        if (instance == null) {
+            instance = new FriendshipService();
+        }
+
+        return instance;
     }
 
     @Override
@@ -42,7 +54,7 @@ public class FriendshipService implements FriendshipServiceAPI {
         userService.ensureUserExists(user);
 
         return userService.getByCriteria(
-            u -> friendshipRepo.contains(f -> f.isUserInside(user.username()) && f.isUserInside(u.username()))
+            u -> friendshipRepo.contains(f -> f.containsUser(user) && f.containsUser(u) && !user.equals(u))
         );
     }
 
@@ -54,11 +66,11 @@ public class FriendshipService implements FriendshipServiceAPI {
         User senderUser = userService.ensureUserExists(sender);
         User targetUser = userService.ensureUserExists(targetUsername);
 
-        if (blockService.checkBlock(targetUser, senderUser)) {
+        if (blockRepo.contains(b -> b.blocker().equals(targetUser) && b.blocked().equals(senderUser))) {
             throw new UserBlockedException("Sender blocked by target user");
         }
 
-        if (blockService.checkBlock(senderUser, targetUser)) {
+        if (blockRepo.contains(b -> b.blocker().equals(senderUser) && b.blocked().equals(targetUser))) {
             throw new UserBlockedException("Sender has blocked target user");
         }
 
@@ -76,7 +88,7 @@ public class FriendshipService implements FriendshipServiceAPI {
         ensureFriendshipExists(removerUser, targetUser);
 
         friendshipRepo.remove(
-            f -> f.isUserInside(removerUser.username()) && f.isUserInside(targetUser.username())
+            f -> f.containsUser(removerUser) && f.containsUser(targetUser)
         );
     }
 
@@ -107,7 +119,7 @@ public class FriendshipService implements FriendshipServiceAPI {
 
     private void ensureFriendshipExists(User left, User right) throws ValueNotFoundException {
 
-        if (!friendshipRepo.contains(f -> f.isUserInside(left.username()) && f.isUserInside(right.username()))) {
+        if (!friendshipRepo.contains(f -> f.containsUser(left) && f.containsUser(right))) {
             throw new ValueNotFoundException("Friendship between users does not exist.");
         }
 

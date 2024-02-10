@@ -9,16 +9,26 @@ import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
 public class BlockService implements BlockServiceAPI {
 
+    private static BlockServiceAPI instance;
+
     private final RepositoryAPI<Block> blockRepo;
 
     private final FriendshipServiceAPI friendshipService;
 
     private final UserServiceAPI userService;
 
-    public BlockService() {
+    private BlockService() {
         blockRepo = BlockRepository.getInstance();
-        userService = new UserService();
-        friendshipService = new FriendshipService();
+        userService = UserService.getInstance();
+        friendshipService = FriendshipService.getInstance();
+    }
+
+    public static BlockServiceAPI getInstance() {
+        if (instance == null) {
+            instance = new BlockService();
+        }
+
+        return instance;
     }
 
     @Override

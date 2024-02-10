@@ -3,7 +3,7 @@ package bg.sofia.uni.fmi.mjt.chatty.server.model;
 import java.util.Collection;
 import java.util.SequencedCollection;
 
-public abstract class Chat {
+public abstract class Chat implements Entity {
 
     private final Collection<User> users;
 

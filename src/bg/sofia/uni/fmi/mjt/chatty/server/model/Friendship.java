@@ -1,19 +1,27 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.model;
 
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 
-public record Friendship(User left, User right) implements Entity {
+public class Friendship implements Entity {
 
-    public boolean isUserInside(String username) {
-        return left.username().equals(username) || right.username().equals(username);
+    private final Collection<User> users;
+
+    public Friendship(User left, User right) {
+        users = Set.of(left, right);
     }
 
-    public Optional<User> getFriendOf(String username) {
-        if (!isUserInside(username)) {
+    public boolean containsUser(User user) {
+        return users.stream().anyMatch(u -> u.equals(user));
+    }
+
+    public Optional<User> getFriendOf(User user) {
+        if (!containsUser(user)) {
             return Optional.empty();
         }
 
-        return left.username().equals(username) ? Optional.of(right()) : Optional.of(left());
+        return users.stream().filter(u -> !u.equals(user)).findFirst();
     }
 
 }
