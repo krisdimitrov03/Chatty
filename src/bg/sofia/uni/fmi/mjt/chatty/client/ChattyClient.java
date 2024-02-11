@@ -10,9 +10,20 @@ import bg.sofia.uni.fmi.mjt.chatty.server.service.UserService;
 import bg.sofia.uni.fmi.mjt.chatty.server.service.UserServiceAPI;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Scanner;
 
 public class ChattyClient {
+
+    private static final int SERVER_PORT = 8000;
+    private static final String SERVER_HOST = "localhost";
+    private static final int BUFFER_SIZE = 1024;
+
+    private static ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
     private static UserDTO user;
 
@@ -20,39 +31,40 @@ public class ChattyClient {
 
     private static boolean isInChat = false;
 
-    private static String draftMessageBuffer = "";
-
-    private static UserServiceAPI userService = UserService.getInstance();
-    private static FriendshipServiceAPI friendshipService = FriendshipService.getInstance();
-
     public static void main(String[] args) throws IOException, ValueNotFoundException, UserBlockedException {
-        var result = userService.login("KrisDMT", "Parola123");
+        try (SocketChannel socketChannel = SocketChannel.open();
+             Scanner scanner = new Scanner(System.in)) {
 
-        if (result.user().isPresent()) {
-            user = result.user().get();
+            socketChannel.connect(new InetSocketAddress(SERVER_HOST, SERVER_PORT));
+
+            while (true) {
+                String message = scanner.nextLine();
+
+                if ("quit".equals(message)) {
+                    break;
+                }
+
+                buffer.clear();
+                buffer.put(message.getBytes());
+                buffer.flip();
+                socketChannel.write(buffer);
+
+                buffer.clear();
+                socketChannel.read(buffer);
+                buffer.flip();
+
+                byte[] byteArray = new byte[buffer.remaining()];
+                buffer.get(byteArray);
+                String reply = new String(byteArray, StandardCharsets.UTF_8);
+
+                System.out.println(reply);
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("There is a problem with the network communication", e);
         }
-
-        friendshipService.addFriend(
-            userService.getByCriteria(u -> u.username().equals(user.username())).stream().findFirst().get(), "martoK");
-
-        System.out.println("KrisDMT sent friend request to martoK");
-
-        friendshipService.acceptRequest(
-            userService.getByCriteria(u -> u.username().equals("martoK")).stream().findFirst().get(), user.username());
-
-        System.out.println("martoK accepted friend request from KrisDMT. They are friends now");
-
-        var friends = friendshipService.getFriendsOf(
-            userService.getByCriteria(u -> u.username().equals(user.username())).stream().findFirst().get());
-
-        System.out.println("Friends:");
-        friends.forEach(f -> System.out.println(f.username()));
-
     }
-
 }
-
-
 
 
 //        String path = "./src/bg/sofia/uni/fmi/mjt/chatty/server/db/users.dat";

@@ -1,6 +1,6 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
-import bg.sofia.uni.fmi.mjt.chatty.dto.Session;
+import bg.sofia.uni.fmi.mjt.chatty.dto.SessionDTO;
 import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
@@ -49,7 +49,7 @@ public class UserService implements UserServiceAPI {
     }
 
     @Override
-    public Session login(String username, String password) {
+    public SessionDTO login(String username, String password) {
         Guard.isNotNull(username);
         Guard.isNotNull(password);
 
@@ -61,12 +61,12 @@ public class UserService implements UserServiceAPI {
         Optional<UserDTO> userDto = user.map(value -> new UserDTO(value.getFullName(), value.username()));
 
         if (user.isEmpty()) {
-            return new Session(userDto, new LinkedHashSet<>());
+            return new SessionDTO(userDto.orElse(new UserDTO("", "")), new LinkedHashSet<>());
         }
 
         var notifications = NotificationRepository.getInstance().get(n -> n.user().equals(user.get()));
 
-        return new Session(userDto, notifications);
+        return new SessionDTO(userDto.get(), notifications);
     }
 
     @Override
