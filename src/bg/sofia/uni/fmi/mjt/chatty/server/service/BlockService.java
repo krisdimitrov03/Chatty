@@ -22,27 +22,27 @@ public class BlockService implements BlockServiceAPI {
     }
 
     @Override
-    public void block(User blocker, String blockedUsername) throws ValueNotFoundException {
+    public void block(String blocker, String blocked) throws ValueNotFoundException {
         Guard.isNotNull(blocker);
-        Guard.isNotNull(blockedUsername);
+        Guard.isNotNull(blocked);
 
         User blockerUser = UserService.getInstance().ensureUserExists(blocker);
-        User blockedUser = UserService.getInstance().ensureUserExists(blockedUsername);
+        User blockedUser = UserService.getInstance().ensureUserExists(blocked);
 
-        FriendshipService.getInstance().removeFriend(blocker, blockedUsername);
+        FriendshipService.getInstance().removeFriend(blocker, blocked);
 
-        ChatService.getInstance().deletePersonalChat(blockerUser.username(), blockedUsername);
+        ChatService.getInstance().deletePersonalChat(blockerUser.username(), blocked);
 
         BlockRepository.getInstance().add(new Block(blockerUser, blockedUser));
     }
 
     @Override
-    public void unblock(User unblocker, String unblockedUsername) throws ValueNotFoundException {
+    public void unblock(String unblocker, String unblocked) throws ValueNotFoundException {
         Guard.isNotNull(unblocker);
-        Guard.isNotNull(unblockedUsername);
+        Guard.isNotNull(unblocked);
 
         User unblockerUser = UserService.getInstance().ensureUserExists(unblocker);
-        User unblockedUser = UserService.getInstance().ensureUserExists(unblockedUsername);
+        User unblockedUser = UserService.getInstance().ensureUserExists(unblocked);
 
         BlockRepository.getInstance()
             .remove(b -> b.blocker().equals(unblockerUser) && b.blocked().equals(unblockedUser));

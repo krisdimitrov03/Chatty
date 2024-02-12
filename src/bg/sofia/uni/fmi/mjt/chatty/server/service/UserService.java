@@ -10,7 +10,6 @@ import bg.sofia.uni.fmi.mjt.chatty.server.repository.UserRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -37,11 +36,13 @@ public class UserService implements UserServiceAPI {
         Guard.isNotNull(username);
         Guard.isNotNull(password);
 
+        Guard.isValidName(firstName);
+        Guard.isValidName(lastName);
         Guard.isValidUsername(username);
         Guard.isValidPassword(password);
 
         if (UserRepository.getInstance().contains(u -> u.username().equals(username))) {
-            throw new UserAlreadyExistsException("User already in repo");
+            throw new UserAlreadyExistsException("User already exists");
         }
 
         UserRepository.getInstance()
@@ -49,7 +50,7 @@ public class UserService implements UserServiceAPI {
     }
 
     @Override
-    public SessionDTO login(String username, String password) {
+    public SessionDTO login(String username, String password) throws ValueNotFoundException {
         Guard.isNotNull(username);
         Guard.isNotNull(password);
 
@@ -58,11 +59,11 @@ public class UserService implements UserServiceAPI {
 
         Optional<User> user = UserRepository.getInstance().get(loginCriteria).stream().findAny();
 
-        Optional<UserDTO> userDto = user.map(value -> new UserDTO(value.getFullName(), value.username()));
-
         if (user.isEmpty()) {
-            return new SessionDTO(userDto.orElse(new UserDTO("", "")), new LinkedHashSet<>());
+            throw new ValueNotFoundException("Incorrect username or password");
         }
+
+        Optional<UserDTO> userDto = user.map(value -> new UserDTO(value.getFullName(), value.username()));
 
         var notifications = NotificationRepository.getInstance().get(n -> n.user().equals(user.get()));
 

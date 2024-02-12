@@ -1,7 +1,11 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.command;
 
 import bg.sofia.uni.fmi.mjt.chatty.dto.SessionDTO;
+import bg.sofia.uni.fmi.mjt.chatty.exception.FriendRequestAlreadySentException;
+import bg.sofia.uni.fmi.mjt.chatty.exception.FriendshipAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyExistsException;
+import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
+import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.service.BlockServiceAPI;
 import bg.sofia.uni.fmi.mjt.chatty.server.service.ChatServiceAPI;
 import bg.sofia.uni.fmi.mjt.chatty.server.service.FriendshipServiceAPI;
@@ -34,6 +38,8 @@ public class CommandExecutor {
         return switch (cmdType) {
             case REGISTER -> register(cmd.arguments());
             case LOGIN -> login(cmd.arguments());
+            case ADD_FRIEND -> addFriend(cmd.arguments());
+            case ACCEPT_REQUEST -> acceptRequest(cmd.arguments());
             default -> "Unknown command";
         };
     }
@@ -46,10 +52,10 @@ public class CommandExecutor {
         try {
             userService.register(args[0], args[1], args[2], args[3]);
 
-            return "success";
+            return "Successful registration";
 
-        } catch (UserAlreadyExistsException e) {
-            return "User already exists";
+        } catch (UserAlreadyExistsException | IllegalArgumentException e) {
+            return e.getMessage();
         }
     }
 
@@ -58,13 +64,41 @@ public class CommandExecutor {
             return INCORRECT_FORMAT_MESSAGE;
         }
 
-        SessionDTO result = userService.login(args[0], args[1]);
-
-        if (!result.user().username().isEmpty()) {
+        try {
+            SessionDTO result = userService.login(args[0], args[1]);
             return new Gson().toJson(result);
+        } catch (IllegalArgumentException | ValueNotFoundException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String addFriend(String[] args) {
+        if (args.length != 2) {
+            return INCORRECT_FORMAT_MESSAGE;
         }
 
-        return "Incorrect username or password";
+        try {
+            friendshipService.addFriend(args[1], args[0]);
+            return "Friend request sent to " + args[0];
+        } catch (ValueNotFoundException e) {
+            return "No such user exists";
+        } catch (UserBlockedException | FriendshipAlreadyExistsException | FriendRequestAlreadySentException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String acceptRequest(String[] args) {
+        if (args.length != 2) {
+            return INCORRECT_FORMAT_MESSAGE;
+        }
+
+        try {
+            friendshipService.acceptRequest(args[1], args[0]);
+            return "You are now friends with " + args[0];
+
+        } catch (ValueNotFoundException e) {
+            return e.getMessage();
+        }
     }
 
 }

@@ -8,6 +8,7 @@ public enum CommandType {
 
     REGISTER("register"),
     LOGIN("login"),
+    LOGOUT("logout"),
     ADD_FRIEND("add-friend"),
     REMOVE_FRIEND("remove-friend"),
     CHECK_REQUESTS("register"),
@@ -17,6 +18,7 @@ public enum CommandType {
     BLOCK("block"),
     UNBLOCK("unblock"),
     OPEN_CHAT("open-chat"),
+    CLOSE_CHAT("close-chat"),
     SEND_MESSAGE("send"),
     CREATE_GROUP("create-group"),
     DELETE_GROUP("delete-group"),
@@ -24,6 +26,7 @@ public enum CommandType {
     REMOVE_FROM_GROUP("remove-from-group"),
     OPEN_GROUP("open-group"),
     CHECK_INBOX("check-inbox"),
+    HELP("help"),
     UNKNOWN("unknown");
 
     private final String value;

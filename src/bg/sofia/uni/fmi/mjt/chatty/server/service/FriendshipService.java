@@ -1,5 +1,7 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
+import bg.sofia.uni.fmi.mjt.chatty.exception.FriendRequestAlreadySentException;
+import bg.sofia.uni.fmi.mjt.chatty.exception.FriendshipAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
@@ -44,12 +46,19 @@ public class FriendshipService implements FriendshipServiceAPI {
     }
 
     @Override
-    public void addFriend(User sender, String targetUsername) throws ValueNotFoundException, UserBlockedException {
+    public void addFriend(String sender, String target)
+        throws ValueNotFoundException, UserBlockedException, FriendshipAlreadyExistsException,
+        FriendRequestAlreadySentException {
         Guard.isNotNull(sender);
-        Guard.isNotNull(targetUsername);
+        Guard.isNotNull(target);
 
         User senderUser = UserService.getInstance().ensureUserExists(sender);
-        User targetUser = UserService.getInstance().ensureUserExists(targetUsername);
+        User targetUser = UserService.getInstance().ensureUserExists(target);
+
+        ensureNoFriendship(senderUser, targetUser);
+
+        ensureNoFriendRequest(senderUser, targetUser, "You have already sent friend request to " + target);
+        ensureNoFriendRequest(targetUser, senderUser, "You have already friend request from " + target);
 
         if (BlockService.getInstance().checkBlock(targetUser, senderUser)) {
             throw new UserBlockedException("Sender blocked by target user");
@@ -64,12 +73,12 @@ public class FriendshipService implements FriendshipServiceAPI {
     }
 
     @Override
-    public void removeFriend(User remover, String targetUsername) throws ValueNotFoundException {
+    public void removeFriend(String remover, String target) throws ValueNotFoundException {
         Guard.isNotNull(remover);
-        Guard.isNotNull(targetUsername);
+        Guard.isNotNull(target);
 
         User removerUser = UserService.getInstance().ensureUserExists(remover);
-        User targetUser = UserService.getInstance().ensureUserExists(targetUsername);
+        User targetUser = UserService.getInstance().ensureUserExists(target);
 
         ensureFriendshipExists(removerUser, targetUser);
 
@@ -79,12 +88,17 @@ public class FriendshipService implements FriendshipServiceAPI {
     }
 
     @Override
-    public void acceptRequest(User accepter, String targetUsername) throws ValueNotFoundException {
+    public void acceptRequest(String accepter, String target) throws ValueNotFoundException {
         Guard.isNotNull(accepter);
-        Guard.isNotNull(targetUsername);
+        Guard.isNotNull(target);
 
         User accepterUser = UserService.getInstance().ensureUserExists(accepter);
-        User targetUser = UserService.getInstance().ensureUserExists(targetUsername);
+        User targetUser = UserService.getInstance().ensureUserExists(target);
+
+        if (!FriendRequestRepository.getInstance()
+            .contains(r -> r.sender().equals(targetUser) && r.receiver().equals(accepterUser))) {
+            throw new ValueNotFoundException("You have no friend request from " + target);
+        }
 
         FriendshipRepository.getInstance().add(new Friendship(targetUser, accepterUser));
         PersonalChatRepository.getInstance().add(new PersonalChat(targetUser, accepterUser));
@@ -94,12 +108,12 @@ public class FriendshipService implements FriendshipServiceAPI {
     }
 
     @Override
-    public void declineRequest(User decliner, String targetUsername) throws ValueNotFoundException {
+    public void declineRequest(String decliner, String target) throws ValueNotFoundException {
         Guard.isNotNull(decliner);
-        Guard.isNotNull(targetUsername);
+        Guard.isNotNull(target);
 
         User declinerUser = UserService.getInstance().ensureUserExists(decliner);
-        User targetUser = UserService.getInstance().ensureUserExists(targetUsername);
+        User targetUser = UserService.getInstance().ensureUserExists(target);
 
         FriendRequestRepository.getInstance()
             .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(declinerUser));
@@ -112,6 +126,20 @@ public class FriendshipService implements FriendshipServiceAPI {
             throw new ValueNotFoundException("Friendship between users does not exist.");
         }
 
+    }
+
+    public void ensureNoFriendship(User left, User right) throws FriendshipAlreadyExistsException {
+        if (FriendshipRepository.getInstance()
+            .contains(f -> f.containsUser(left) && f.containsUser(right))) {
+            throw new FriendshipAlreadyExistsException("You are already friends with " + right);
+        }
+    }
+
+    public void ensureNoFriendRequest(User left, User right, String message) throws FriendRequestAlreadySentException {
+        if (FriendRequestRepository.getInstance()
+            .contains(f -> f.sender().equals(left) && f.receiver().equals(right))) {
+            throw new FriendRequestAlreadySentException(message);
+        }
     }
 
 }

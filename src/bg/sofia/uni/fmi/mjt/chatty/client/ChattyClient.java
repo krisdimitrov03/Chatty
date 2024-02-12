@@ -1,13 +1,11 @@
 package bg.sofia.uni.fmi.mjt.chatty.client;
 
+import bg.sofia.uni.fmi.mjt.chatty.dto.SessionDTO;
 import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
-import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
+import bg.sofia.uni.fmi.mjt.chatty.server.command.CommandType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
-import bg.sofia.uni.fmi.mjt.chatty.server.service.FriendshipService;
-import bg.sofia.uni.fmi.mjt.chatty.server.service.FriendshipServiceAPI;
-import bg.sofia.uni.fmi.mjt.chatty.server.service.UserService;
-import bg.sofia.uni.fmi.mjt.chatty.server.service.UserServiceAPI;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,36 +14,43 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Scanner;
+import java.util.Set;
 
 public class ChattyClient {
 
-    private static final int SERVER_PORT = 8000;
+    private static final int SERVER_PORT = 7777;
     private static final String SERVER_HOST = "localhost";
     private static final int BUFFER_SIZE = 1024;
 
-    private static ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-
+    private static final ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private static UserDTO user;
-
     private static Collection<Notification> notifications;
+    private static ChatState chatState = ChatState.NOT_IN_CHAT;
+    private static String chatRelatedName;
 
-    private static boolean isInChat = false;
-
-    public static void main(String[] args) throws IOException, ValueNotFoundException, UserBlockedException {
+    public static void main(String[] args) {
         try (SocketChannel socketChannel = SocketChannel.open();
              Scanner scanner = new Scanner(System.in)) {
-
             socketChannel.connect(new InetSocketAddress(SERVER_HOST, SERVER_PORT));
 
             while (true) {
-                String message = scanner.nextLine();
+                String input = scanner.nextLine();
 
-                if ("quit".equals(message)) {
+                if ("quit".equals(input)) {
                     break;
                 }
 
+                CommandType type = CommandType.of(input.split(" ")[0]);
+
+                if (isLocalCommand(type)) {
+                    processLocalCommand(type, input);
+                    continue;
+                }
+
+                String processedInput = processInputForServer(type, input);
+
                 buffer.clear();
-                buffer.put(message.getBytes());
+                buffer.put(processedInput.getBytes());
                 buffer.flip();
                 socketChannel.write(buffer);
 
@@ -57,33 +62,82 @@ public class ChattyClient {
                 buffer.get(byteArray);
                 String reply = new String(byteArray, StandardCharsets.UTF_8);
 
-                System.out.println(reply);
+                processResponse(type, reply);
             }
-
         } catch (IOException e) {
             throw new RuntimeException("There is a problem with the network communication", e);
         }
     }
+
+    private static boolean isLocalCommand(CommandType commandType) {
+        return Set.of(
+            CommandType.UNKNOWN,
+            CommandType.HELP,
+            CommandType.LOGOUT,
+            CommandType.CLOSE_CHAT
+        ).contains(commandType);
+    }
+
+    private static void processLocalCommand(CommandType type, String input) {
+        switch (type) {
+            case UNKNOWN -> System.out.println("Unknown command. Type 'help' to see available commands");
+            case HELP -> processHelp();
+            case LOGOUT -> processLogout();
+            case CLOSE_CHAT -> processCloseChat();
+        }
+    }
+
+    private static void processHelp() {
+        System.out.println("Help");
+    }
+
+    private static void processLogout() {
+        if (user == null) {
+            System.out.println("You are not logged in");
+        }
+
+        user = null;
+        notifications = null;
+        chatState = ChatState.NOT_IN_CHAT;
+        chatRelatedName = null;
+
+        System.out.println("Logged out");
+    }
+
+    private static void processCloseChat() {
+        if (chatState.equals(ChatState.NOT_IN_CHAT)) {
+            System.out.println("You are not in chat");
+        }
+
+        chatState = ChatState.NOT_IN_CHAT;
+        chatRelatedName = null;
+    }
+
+    private static String processInputForServer(CommandType type, String input) {
+        return user == null ? input : input + " " + user.username();
+    }
+
+    private static void processResponse(CommandType type, String reply) {
+        switch (type) {
+            case REGISTER, ADD_FRIEND, ACCEPT_REQUEST -> System.out.println(reply);
+            case LOGIN -> processLogin(reply);
+        }
+    }
+
+    private static void processLogin(String reply) {
+        try {
+
+            SessionDTO session = new Gson().fromJson(reply, SessionDTO.class);
+            user = session.user();
+            notifications = session.notifications();
+
+            System.out.println("Hello, " + user.fullName() + "\n");
+            // TODO: Print notifications
+            System.out.println();
+
+        } catch (JsonSyntaxException e) {
+            System.out.println(reply);
+        }
+    }
+
 }
-
-
-//        String path = "./src/bg/sofia/uni/fmi/mjt/chatty/server/db/users.dat";
-//
-//        Collection<User> users = Set.of(
-//            new User("Ivan", "Ivanov", "ivan_ii", "63160655"),
-//            new User("Kristian", "Dimitrov", "KrisDMT", "63160655"),
-//            new User("Martin", "Karbovski", "martoK", "63160655"),
-//            new User("Boris", "Kasabov", "bobiK", "63160655")
-//        );
-//
-//        try (ObjectOutputStream stream = new ObjectOutputStream(new FileOutputStream(path))) {
-//            stream.writeInt(4);
-//
-//            users.forEach(u -> {
-//                try {
-//                    u.saveTo(stream);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            });
-//        }

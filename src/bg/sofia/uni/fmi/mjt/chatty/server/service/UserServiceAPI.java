@@ -13,7 +13,7 @@ public interface UserServiceAPI {
     void register(String firstName, String lastName, String username, String password)
         throws UserAlreadyExistsException;
 
-    SessionDTO login(String username, String password);
+    SessionDTO login(String username, String password) throws ValueNotFoundException;
 
     User ensureUserExists(User user) throws ValueNotFoundException;
 
