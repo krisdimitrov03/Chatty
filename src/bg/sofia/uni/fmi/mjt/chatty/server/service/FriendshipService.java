@@ -1,22 +1,25 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
+import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.FriendRequestAlreadySentException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.FriendshipAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
-import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.FriendRequest;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Friendship;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.PersonalChat;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
-import bg.sofia.uni.fmi.mjt.chatty.server.repository.BlockRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.FriendRequestRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.FriendshipRepository;
+import bg.sofia.uni.fmi.mjt.chatty.server.repository.NotificationRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.PersonalChatRepository;
-import bg.sofia.uni.fmi.mjt.chatty.server.repository.RepositoryAPI;
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class FriendshipService implements FriendshipServiceAPI {
 
@@ -34,15 +37,17 @@ public class FriendshipService implements FriendshipServiceAPI {
     }
 
     @Override
-    public Collection<User> getFriendsOf(User user) throws ValueNotFoundException {
-        Guard.isNotNull(user);
+    public Collection<UserDTO> getFriendsOf(String username) throws ValueNotFoundException {
+        Guard.isNotNull(username);
 
-        UserService.getInstance().ensureUserExists(user);
+        User user = UserService.getInstance().ensureUserExists(username);
 
         return UserService.getInstance().getByCriteria(
-            u -> FriendshipRepository.getInstance()
-                .contains(f -> f.containsUser(user) && f.containsUser(u) && !user.equals(u))
-        );
+                u -> FriendshipRepository.getInstance()
+                    .contains(f -> f.containsUser(user) && f.containsUser(u) && !user.equals(u)))
+            .stream()
+            .map(u -> new UserDTO(u.getFullName(), u.username()))
+            .collect(Collectors.toSet());
     }
 
     @Override
@@ -70,6 +75,10 @@ public class FriendshipService implements FriendshipServiceAPI {
 
         FriendRequestRepository.getInstance()
             .add(new FriendRequest(senderUser, targetUser));
+
+        String notificationContent = "From " + senderUser.getFullName() + " [" + sender + "]";
+        NotificationRepository.getInstance()
+            .add(new Notification(targetUser, NotificationType.FRIEND_REQUEST, notificationContent));
     }
 
     @Override
@@ -88,32 +97,42 @@ public class FriendshipService implements FriendshipServiceAPI {
     }
 
     @Override
+    public Collection<UserDTO> getRequests(String username) throws ValueNotFoundException {
+        Guard.isNotNull(username);
+
+        User user = UserService.getInstance().ensureUserExists(username);
+
+        return FriendRequestRepository.getInstance()
+            .get(r -> r.receiver().equals(user))
+            .stream()
+            .map(r -> new UserDTO(r.sender().getFullName(), r.sender().username()))
+            .collect(Collectors.toSet());
+    }
+
+    @Override
     public void acceptRequest(String accepter, String target) throws ValueNotFoundException {
-        Guard.isNotNull(accepter);
-        Guard.isNotNull(target);
+        var userPair = validateRequestOperation(accepter, target);
 
-        User accepterUser = UserService.getInstance().ensureUserExists(accepter);
-        User targetUser = UserService.getInstance().ensureUserExists(target);
-
-        if (!FriendRequestRepository.getInstance()
-            .contains(r -> r.sender().equals(targetUser) && r.receiver().equals(accepterUser))) {
-            throw new ValueNotFoundException("You have no friend request from " + target);
-        }
+        User accepterUser = userPair.getKey();
+        User targetUser = userPair.getValue();
 
         FriendshipRepository.getInstance().add(new Friendship(targetUser, accepterUser));
         PersonalChatRepository.getInstance().add(new PersonalChat(targetUser, accepterUser));
 
         FriendRequestRepository.getInstance()
             .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(accepterUser));
+
+        String notificationContent = accepterUser.getFullName() + " accepted your friend request";
+        NotificationRepository.getInstance()
+            .add(new Notification(targetUser, NotificationType.OTHER, notificationContent));
     }
 
     @Override
     public void declineRequest(String decliner, String target) throws ValueNotFoundException {
-        Guard.isNotNull(decliner);
-        Guard.isNotNull(target);
+        var userPair = validateRequestOperation(decliner, target);
 
-        User declinerUser = UserService.getInstance().ensureUserExists(decliner);
-        User targetUser = UserService.getInstance().ensureUserExists(target);
+        User declinerUser = userPair.getKey();
+        User targetUser = userPair.getValue();
 
         FriendRequestRepository.getInstance()
             .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(declinerUser));
@@ -140,6 +159,21 @@ public class FriendshipService implements FriendshipServiceAPI {
             .contains(f -> f.sender().equals(left) && f.receiver().equals(right))) {
             throw new FriendRequestAlreadySentException(message);
         }
+    }
+
+    public Map.Entry<User, User> validateRequestOperation(String actor, String target) throws ValueNotFoundException {
+        Guard.isNotNull(actor);
+        Guard.isNotNull(target);
+
+        User actorUser = UserService.getInstance().ensureUserExists(actor);
+        User targetUser = UserService.getInstance().ensureUserExists(target);
+
+        if (!FriendRequestRepository.getInstance()
+            .contains(r -> r.sender().equals(targetUser) && r.receiver().equals(actorUser))) {
+            throw new ValueNotFoundException("You have no friend request from " + target);
+        }
+
+        return Map.entry(actorUser, targetUser);
     }
 
 }

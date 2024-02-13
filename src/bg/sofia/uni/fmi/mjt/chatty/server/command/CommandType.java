@@ -11,7 +11,7 @@ public enum CommandType {
     LOGOUT("logout"),
     ADD_FRIEND("add-friend"),
     REMOVE_FRIEND("remove-friend"),
-    CHECK_REQUESTS("register"),
+    CHECK_REQUESTS("check-requests"),
     ACCEPT_REQUEST("accept"),
     DECLINE_REQUEST("decline"),
     LIST_FRIENDS("list-friends"),

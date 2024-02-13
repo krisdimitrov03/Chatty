@@ -2,8 +2,11 @@ package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.BlockRepository;
+import bg.sofia.uni.fmi.mjt.chatty.server.repository.NotificationRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
 public class BlockService implements BlockServiceAPI {
@@ -34,6 +37,10 @@ public class BlockService implements BlockServiceAPI {
         ChatService.getInstance().deletePersonalChat(blockerUser.username(), blocked);
 
         BlockRepository.getInstance().add(new Block(blockerUser, blockedUser));
+
+        String notificationContent = blockerUser.getFullName() + " blocked you";
+        NotificationRepository.getInstance()
+            .add(new Notification(blockedUser, NotificationType.OTHER, notificationContent));
     }
 
     @Override
@@ -46,6 +53,10 @@ public class BlockService implements BlockServiceAPI {
 
         BlockRepository.getInstance()
             .remove(b -> b.blocker().equals(unblockerUser) && b.blocked().equals(unblockedUser));
+
+        String notificationContent = unblockerUser.getFullName() + " unblocked you";
+        NotificationRepository.getInstance()
+            .add(new Notification(unblockedUser, NotificationType.OTHER, notificationContent));
     }
 
     @Override

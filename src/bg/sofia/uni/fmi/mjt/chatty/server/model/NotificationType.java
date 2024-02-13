@@ -4,6 +4,7 @@ public enum NotificationType {
 
     FRIEND_REQUEST,
     PERSONAL_MESSAGE,
-    GROUP_MESSAGE
+    GROUP_MESSAGE,
+    OTHER
 
 }

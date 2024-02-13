@@ -5,7 +5,6 @@ import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
-import bg.sofia.uni.fmi.mjt.chatty.server.repository.NotificationRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.UserRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
@@ -63,11 +62,9 @@ public class UserService implements UserServiceAPI {
             throw new ValueNotFoundException("Incorrect username or password");
         }
 
-        Optional<UserDTO> userDto = user.map(value -> new UserDTO(value.getFullName(), value.username()));
+        UserDTO userDto = new UserDTO(user.get().getFullName(), user.get().username());
 
-        var notifications = NotificationRepository.getInstance().get(n -> n.user().equals(user.get()));
-
-        return new SessionDTO(userDto.get(), notifications);
+        return new SessionDTO(userDto, NotificationService.getInstance().getNotificationsOf(username));
     }
 
     @Override

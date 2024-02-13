@@ -1,5 +1,6 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
+import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.FriendRequestAlreadySentException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.FriendshipAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
@@ -10,13 +11,15 @@ import java.util.Collection;
 
 public interface FriendshipServiceAPI {
 
-    Collection<User> getFriendsOf(User user) throws ValueNotFoundException;
+    Collection<UserDTO> getFriendsOf(String username) throws ValueNotFoundException;
 
     void addFriend(String sender, String target)
         throws ValueNotFoundException, UserBlockedException, FriendshipAlreadyExistsException,
         FriendRequestAlreadySentException;
 
     void removeFriend(String remover, String target) throws ValueNotFoundException;
+
+    Collection<UserDTO> getRequests(String username) throws ValueNotFoundException;
 
     void acceptRequest(String accepter, String target) throws ValueNotFoundException;
 
