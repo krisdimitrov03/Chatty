@@ -1,8 +1,8 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
-import bg.sofia.uni.fmi.mjt.chatty.exception.AccessDeniedException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyInGroupException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.AccessDeniedException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.UserAlreadyInGroupException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.GroupChat;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.PersonalChat;
 

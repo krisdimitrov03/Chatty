@@ -1,10 +1,10 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
 import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.UserDTO;
-import bg.sofia.uni.fmi.mjt.chatty.exception.FriendRequestAlreadySentException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.FriendshipAlreadyExistsException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.FriendRequestAlreadySentException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.FriendshipAlreadyExistsException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.UserBlockedException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.FriendRequest;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Friendship;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;

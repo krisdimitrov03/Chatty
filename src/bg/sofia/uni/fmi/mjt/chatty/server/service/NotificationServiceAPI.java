@@ -1,6 +1,6 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
-import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;

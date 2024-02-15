@@ -1,6 +1,6 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.repository;
 
-import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Entity;
 
 import java.io.EOFException;

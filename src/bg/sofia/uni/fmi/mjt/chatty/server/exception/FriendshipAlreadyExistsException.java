@@ -1,4 +1,4 @@
-package bg.sofia.uni.fmi.mjt.chatty.exception;
+package bg.sofia.uni.fmi.mjt.chatty.server.exception;
 
 public class FriendshipAlreadyExistsException extends Exception {
 
