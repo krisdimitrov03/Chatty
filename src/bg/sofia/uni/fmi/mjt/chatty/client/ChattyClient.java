@@ -59,7 +59,7 @@ public class ChattyClient {
 
                 CommandType type = CommandType.of(input.split(" ")[0]);
 
-                if (!validateBeforeSending(type, input)) {
+                if (!validateBeforeSending(type)) {
                     continue;
                 }
 
@@ -82,7 +82,7 @@ public class ChattyClient {
         }
     }
 
-    private boolean validateBeforeSending(CommandType type, String input) {
+    private boolean validateBeforeSending(CommandType type) {
         if (!checkAuthorization(type)) {
             return false;
         }

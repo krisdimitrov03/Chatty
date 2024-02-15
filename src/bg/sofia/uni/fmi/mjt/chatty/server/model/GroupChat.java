@@ -2,11 +2,9 @@ package bg.sofia.uni.fmi.mjt.chatty.server.model;
 
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Set;
-import java.util.SequencedCollection;
 
 public class GroupChat extends Chat implements Entity {
 
