@@ -13,7 +13,7 @@ public class FriendRequestRepository extends Repository<FriendRequest> {
     }
 
     public static FriendRequestRepository getInstance() {
-        if(instance == null) {
+        if (instance == null) {
             instance = new FriendRequestRepository(DB_PATH);
         }
 

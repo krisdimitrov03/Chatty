@@ -1,9 +1,8 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.model;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.SequencedCollection;
+import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
+
+import java.util.*;
 
 public class GroupChat extends Chat implements Entity {
 
@@ -12,7 +11,7 @@ public class GroupChat extends Chat implements Entity {
     private final String name;
 
     public GroupChat(String name, User admin) {
-        super(new LinkedHashSet<>(), new LinkedList<>());
+        super(new LinkedHashSet<>(Set.of(admin)), new LinkedList<>());
 
         this.admin = admin;
         this.name = name;
@@ -33,11 +32,13 @@ public class GroupChat extends Chat implements Entity {
     }
 
     public void addUser(User user) {
-        if (user == null) {
-            throw new IllegalArgumentException("Username is null");
-        }
-
+        Guard.isNotNull(user);
         getUsers().add(user);
+    }
+
+    public void removeUser(User user) {
+        Guard.isNotNull(user);
+        getUsers().remove(user);
     }
 
     public User getAdmin() {

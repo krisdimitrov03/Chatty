@@ -1,15 +1,14 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.command;
 
+import bg.sofia.uni.fmi.mjt.chatty.dto.GroupChatDTO;
+import bg.sofia.uni.fmi.mjt.chatty.dto.PersonalChatDTO;
 import bg.sofia.uni.fmi.mjt.chatty.dto.SessionDTO;
 import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
-import bg.sofia.uni.fmi.mjt.chatty.exception.FriendRequestAlreadySentException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.FriendshipAlreadyExistsException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyExistsException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
-import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
+import bg.sofia.uni.fmi.mjt.chatty.exception.*;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.GroupChat;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.PersonalChat;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.service.BlockServiceAPI;
 import bg.sofia.uni.fmi.mjt.chatty.server.service.ChatServiceAPI;
 import bg.sofia.uni.fmi.mjt.chatty.server.service.FriendshipServiceAPI;
@@ -17,18 +16,12 @@ import bg.sofia.uni.fmi.mjt.chatty.server.service.NotificationServiceAPI;
 import bg.sofia.uni.fmi.mjt.chatty.server.service.UserServiceAPI;
 import com.google.gson.Gson;
 
-import java.nio.channels.SelectionKey;
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 public class CommandExecutor {
 
-    private static final String INCORRECT_FORMAT_MESSAGE = "Input is not in correct format";
-
-    private final Map<PersonalChat, Set<SelectionKey>> openedPersonalChats;
-    private final Map<GroupChat, Set<SelectionKey>> openedGroupChats;
+    public static final String INCORRECT_FORMAT_MESSAGE = "Input is not in correct format";
 
     private final UserServiceAPI userService;
     private final FriendshipServiceAPI friendshipService;
@@ -39,14 +32,11 @@ public class CommandExecutor {
     private final Gson gson;
 
     public CommandExecutor(
-        UserServiceAPI userService,
-        FriendshipServiceAPI friendshipService,
-        ChatServiceAPI chatService,
-        BlockServiceAPI blockService,
-        NotificationServiceAPI notificationService) {
-        openedPersonalChats = new LinkedHashMap<>();
-        openedGroupChats = new LinkedHashMap<>();
-
+            UserServiceAPI userService,
+            FriendshipServiceAPI friendshipService,
+            ChatServiceAPI chatService,
+            BlockServiceAPI blockService,
+            NotificationServiceAPI notificationService) {
         this.userService = userService;
         this.friendshipService = friendshipService;
         this.chatService = chatService;
@@ -70,6 +60,14 @@ public class CommandExecutor {
             case LIST_FRIENDS -> listFriends(cmd.arguments());
             case BLOCK -> block(cmd.arguments());
             case UNBLOCK -> unblock(cmd.arguments());
+            case OPEN_CHAT -> openChat(cmd.arguments());
+            case CLOSE_CHAT -> closeChat();
+            case SEND_MESSAGE -> sendMessage(cmd.arguments());
+            case CREATE_GROUP -> createGroup(cmd.arguments());
+            case DELETE_GROUP -> deleteGroup(cmd.arguments());
+            case ADD_TO_GROUP -> addToGroup(cmd.arguments());
+            case REMOVE_FROM_GROUP -> removeFromGroup(cmd.arguments());
+            case OPEN_GROUP -> openGroup(cmd.arguments());
             case CHECK_INBOX -> checkInbox(cmd.arguments());
             default -> "Unknown command";
         };
@@ -219,6 +217,114 @@ public class CommandExecutor {
         try {
             blockService.unblock(args[1], args[0]);
             return args[0] + " unblocked";
+        } catch (ValueNotFoundException | IllegalArgumentException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String openChat(String[] args) {
+        if (args.length != 2) {
+            return INCORRECT_FORMAT_MESSAGE;
+        }
+
+        try {
+            PersonalChat chat = chatService.getPersonalChat(args[0], args[1]);
+            return gson.toJson(new PersonalChatDTO(args[0], chat.getMessages()));
+        } catch (ValueNotFoundException | IllegalArgumentException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String closeChat() {
+        return "closed";
+    }
+
+    private String sendMessage(String[] args) {
+        if (args.length != 4) {
+            return INCORRECT_FORMAT_MESSAGE;
+        }
+
+        try {
+            switch (Integer.parseInt(args[3])) {
+                case 1 -> chatService.sendPersonalMessage(args[1], args[2], args[0]);
+                case 2 -> chatService.sendGroupMessage(args[2], args[1], args[0]);
+            }
+
+            return "[" + args[1] + "] " + args[0];
+        } catch (ValueNotFoundException | IllegalArgumentException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String createGroup(String[] args) {
+        if (args.length != 2) {
+            return INCORRECT_FORMAT_MESSAGE;
+        }
+
+        try {
+            chatService.createGroupChat(args[0], args[1]);
+            return "Group chat created with admin " + args[1];
+        } catch (ValueNotFoundException | UserAlreadyInGroupException | IllegalArgumentException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String deleteGroup(String[] args) {
+        if (args.length != 2) {
+            return INCORRECT_FORMAT_MESSAGE;
+        }
+
+        try {
+            chatService.deleteGroupChat(args[0], args[1]);
+            return "Group chat deleted";
+        } catch (ValueNotFoundException | AccessDeniedException | IllegalArgumentException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String addToGroup(String[] args) {
+        if (args.length != 3) {
+            return INCORRECT_FORMAT_MESSAGE;
+        }
+
+        try {
+
+            chatService.addToGroupChat(args[1], args[2], args[0]);
+            return args[0] + " added to " + args[1];
+
+        } catch (ValueNotFoundException |
+                 AccessDeniedException |
+                 UserAlreadyInGroupException |
+                 IllegalArgumentException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String removeFromGroup(String[] args) {
+        if (args.length != 3) {
+            return INCORRECT_FORMAT_MESSAGE;
+        }
+
+        try {
+            chatService.removeFromGroupChat(args[1], args[2], args[0]);
+            return args[0] + " kicked from " + args[1];
+        } catch (ValueNotFoundException | AccessDeniedException | IllegalArgumentException e) {
+            return e.getMessage();
+        }
+    }
+
+    private String openGroup(String[] args) {
+        if (args.length != 2) {
+            return INCORRECT_FORMAT_MESSAGE;
+        }
+
+        try {
+
+            GroupChat chat = chatService.getGroupChat(args[0], args[1]);
+            String[] usernames = chat.getUsers().stream().map(User::username).toArray(String[]::new);
+
+            return gson.toJson(new GroupChatDTO(chat.getName(), usernames, chat.getMessages()));
+
         } catch (ValueNotFoundException | IllegalArgumentException e) {
             return e.getMessage();
         }

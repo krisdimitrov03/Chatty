@@ -124,7 +124,7 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
         saveEntities();
     }
 
-    private void saveEntities() {
+    public void saveEntities() {
         try (var stream = new ObjectOutputStream(new FileOutputStream(dbPath))) {
             if (entities.isEmpty()) {
                 stream.flush();

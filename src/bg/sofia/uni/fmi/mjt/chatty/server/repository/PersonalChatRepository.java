@@ -13,7 +13,7 @@ public class PersonalChatRepository extends Repository<PersonalChat> {
     }
 
     public static PersonalChatRepository getInstance() {
-        if(instance == null) {
+        if (instance == null) {
             instance = new PersonalChatRepository(DB_PATH);
         }
 

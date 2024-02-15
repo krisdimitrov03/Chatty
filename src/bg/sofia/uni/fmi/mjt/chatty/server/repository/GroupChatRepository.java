@@ -13,7 +13,7 @@ public class GroupChatRepository extends Repository<GroupChat> {
     }
 
     public static GroupChatRepository getInstance() {
-        if(instance == null) {
+        if (instance == null) {
             instance = new GroupChatRepository(DB_PATH);
         }
 

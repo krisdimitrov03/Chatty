@@ -13,7 +13,7 @@ public class UserRepository extends Repository<User> {
     }
 
     public static UserRepository getInstance() {
-        if(instance == null) {
+        if (instance == null) {
             instance = new UserRepository(DB_PATH);
         }
 

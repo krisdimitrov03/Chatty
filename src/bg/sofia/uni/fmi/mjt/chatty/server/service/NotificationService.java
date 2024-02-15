@@ -29,7 +29,7 @@ public class NotificationService implements NotificationServiceAPI {
         Guard.isNotNull(username);
 
         return NotificationRepository.getInstance()
-            .get(n -> n.user().username().equals(username));
+                .get(n -> n.user().username().equals(username));
     }
 
     @Override
@@ -38,12 +38,13 @@ public class NotificationService implements NotificationServiceAPI {
 
         if (!getNotificationsOf(username).isEmpty()) {
             NotificationRepository.getInstance()
-                .remove(n -> n.user().username().equals(username));
+                    .remove(n -> n.user().username().equals(username));
         }
     }
 
     @Override
     public void addNotification(User user, NotificationType type, String content) {
-
+        NotificationRepository.getInstance()
+                .add(new Notification(user, type, content));
     }
 }

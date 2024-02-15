@@ -1,6 +1,5 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.repository;
 
-
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
 
 public class BlockRepository extends Repository<Block> {

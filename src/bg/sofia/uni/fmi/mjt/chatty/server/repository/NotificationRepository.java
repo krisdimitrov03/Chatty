@@ -13,7 +13,7 @@ public class NotificationRepository extends Repository<Notification> {
     }
 
     public static NotificationRepository getInstance() {
-        if(instance == null) {
+        if (instance == null) {
             instance = new NotificationRepository(DB_PATH);
         }
 

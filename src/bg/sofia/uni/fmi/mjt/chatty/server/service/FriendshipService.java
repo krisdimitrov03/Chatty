@@ -43,17 +43,17 @@ public class FriendshipService implements FriendshipServiceAPI {
         User user = UserService.getInstance().ensureUserExists(username);
 
         return UserService.getInstance().getByCriteria(
-                u -> FriendshipRepository.getInstance()
-                    .contains(f -> f.containsUser(user) && f.containsUser(u) && !user.equals(u)))
-            .stream()
-            .map(u -> new UserDTO(u.getFullName(), u.username()))
-            .collect(Collectors.toSet());
+                        u -> FriendshipRepository.getInstance()
+                                .contains(f -> f.containsUser(user) && f.containsUser(u) && !user.equals(u)))
+                .stream()
+                .map(u -> new UserDTO(u.getFullName(), u.username()))
+                .collect(Collectors.toSet());
     }
 
     @Override
     public void addFriend(String sender, String target)
-        throws ValueNotFoundException, UserBlockedException, FriendshipAlreadyExistsException,
-        FriendRequestAlreadySentException {
+            throws ValueNotFoundException, UserBlockedException, FriendshipAlreadyExistsException,
+            FriendRequestAlreadySentException {
         Guard.isNotNull(sender);
         Guard.isNotNull(target);
 
@@ -74,11 +74,11 @@ public class FriendshipService implements FriendshipServiceAPI {
         }
 
         FriendRequestRepository.getInstance()
-            .add(new FriendRequest(senderUser, targetUser));
+                .add(new FriendRequest(senderUser, targetUser));
 
         String notificationContent = "From " + senderUser.getFullName() + " [" + sender + "]";
-        NotificationRepository.getInstance()
-            .add(new Notification(targetUser, NotificationType.FRIEND_REQUEST, notificationContent));
+        NotificationService.getInstance()
+                .addNotification(targetUser, NotificationType.FRIEND_REQUEST, notificationContent);
     }
 
     @Override
@@ -92,7 +92,7 @@ public class FriendshipService implements FriendshipServiceAPI {
         ensureFriendshipExists(removerUser, targetUser);
 
         FriendshipRepository.getInstance().remove(
-            f -> f.containsUser(removerUser) && f.containsUser(targetUser)
+                f -> f.containsUser(removerUser) && f.containsUser(targetUser)
         );
     }
 
@@ -103,10 +103,10 @@ public class FriendshipService implements FriendshipServiceAPI {
         User user = UserService.getInstance().ensureUserExists(username);
 
         return FriendRequestRepository.getInstance()
-            .get(r -> r.receiver().equals(user))
-            .stream()
-            .map(r -> new UserDTO(r.sender().getFullName(), r.sender().username()))
-            .collect(Collectors.toSet());
+                .get(r -> r.receiver().equals(user))
+                .stream()
+                .map(r -> new UserDTO(r.sender().getFullName(), r.sender().username()))
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -120,11 +120,11 @@ public class FriendshipService implements FriendshipServiceAPI {
         PersonalChatRepository.getInstance().add(new PersonalChat(targetUser, accepterUser));
 
         FriendRequestRepository.getInstance()
-            .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(accepterUser));
+                .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(accepterUser));
 
         String notificationContent = accepterUser.getFullName() + " accepted your friend request";
-        NotificationRepository.getInstance()
-            .add(new Notification(targetUser, NotificationType.OTHER, notificationContent));
+        NotificationService.getInstance()
+                .addNotification(targetUser, NotificationType.OTHER, notificationContent);
     }
 
     @Override
@@ -135,7 +135,7 @@ public class FriendshipService implements FriendshipServiceAPI {
         User targetUser = userPair.getValue();
 
         FriendRequestRepository.getInstance()
-            .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(declinerUser));
+                .remove(f -> f.sender().equals(targetUser) && f.receiver().equals(declinerUser));
     }
 
     @Override
@@ -149,14 +149,14 @@ public class FriendshipService implements FriendshipServiceAPI {
 
     public void ensureNoFriendship(User left, User right) throws FriendshipAlreadyExistsException {
         if (FriendshipRepository.getInstance()
-            .contains(f -> f.containsUser(left) && f.containsUser(right))) {
+                .contains(f -> f.containsUser(left) && f.containsUser(right))) {
             throw new FriendshipAlreadyExistsException("You are already friends with " + right);
         }
     }
 
     public void ensureNoFriendRequest(User left, User right, String message) throws FriendRequestAlreadySentException {
         if (FriendRequestRepository.getInstance()
-            .contains(f -> f.sender().equals(left) && f.receiver().equals(right))) {
+                .contains(f -> f.sender().equals(left) && f.receiver().equals(right))) {
             throw new FriendRequestAlreadySentException(message);
         }
     }
@@ -169,7 +169,7 @@ public class FriendshipService implements FriendshipServiceAPI {
         User targetUser = UserService.getInstance().ensureUserExists(target);
 
         if (!FriendRequestRepository.getInstance()
-            .contains(r -> r.sender().equals(targetUser) && r.receiver().equals(actorUser))) {
+                .contains(r -> r.sender().equals(targetUser) && r.receiver().equals(actorUser))) {
             throw new ValueNotFoundException("You have no friend request from " + target);
         }
 

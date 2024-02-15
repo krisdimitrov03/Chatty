@@ -1,8 +1,11 @@
 package bg.sofia.uni.fmi.mjt.chatty.client;
 
+import bg.sofia.uni.fmi.mjt.chatty.dto.GroupChatDTO;
+import bg.sofia.uni.fmi.mjt.chatty.dto.PersonalChatDTO;
 import bg.sofia.uni.fmi.mjt.chatty.dto.SessionDTO;
 import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.server.command.CommandType;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.Message;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
 import com.google.gson.Gson;
@@ -13,9 +16,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ChattyClient {
@@ -44,6 +45,11 @@ public class ChattyClient {
             while (true) {
                 String input = scanner.nextLine();
                 if ("quit".equals(input)) {
+                    if (!chatState.equals(ChatState.NOT_IN_CHAT)) {
+                        System.out.println("Close the chat before quitting.");
+                        continue;
+                    }
+
                     break;
                 }
 
@@ -58,9 +64,27 @@ public class ChattyClient {
                     continue;
                 }
 
+                if (!checkInChatForSend(type)) {
+                    continue;
+                }
+
+                if (type.equals(CommandType.CLOSE_CHAT)) {
+                    if (chatState.equals(ChatState.NOT_IN_CHAT)) {
+                        System.out.println("You are not in chat");
+                        continue;
+                    }
+                }
+
                 sendRequest(socketChannel, processInputForServer(input));
-                String reply = getResponse(socketChannel);
-                processResponse(type, reply);
+
+                if (type.equals(CommandType.CLOSE_CHAT)) {
+                    processCloseChat();
+                }
+
+                if (chatState.equals(ChatState.NOT_IN_CHAT)) {
+                    String reply = getResponse(socketChannel);
+                    processResponse(type, reply, socketChannel);
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException("There is a problem with the network communication", e);
@@ -104,12 +128,22 @@ public class ChattyClient {
         };
     }
 
+    private boolean checkInChatForSend(CommandType type) {
+        if (type.equals(CommandType.SEND_MESSAGE)) {
+            if (chatState.equals(ChatState.NOT_IN_CHAT)) {
+                System.out.println("You need to be in chat to send message");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private boolean isLocalCommand(CommandType commandType) {
         return Set.of(
-            CommandType.UNKNOWN,
-            CommandType.HELP,
-            CommandType.LOGOUT,
-            CommandType.CLOSE_CHAT
+                CommandType.UNKNOWN,
+                CommandType.HELP,
+                CommandType.LOGOUT
         ).contains(commandType);
     }
 
@@ -118,7 +152,6 @@ public class ChattyClient {
             case UNKNOWN -> System.out.println("Unknown command. Type 'help' to see available commands");
             case HELP -> processHelp();
             case LOGOUT -> processLogout();
-            case CLOSE_CHAT -> processCloseChat();
         }
     }
 
@@ -134,32 +167,34 @@ public class ChattyClient {
         System.out.println("Logged out");
     }
 
-    private void processCloseChat() {
-        if (chatState.equals(ChatState.NOT_IN_CHAT)) {
-            System.out.println("You are not in chat");
-            return;
+    private String processInputForServer(String input) {
+        if (!input.startsWith(CommandType.SEND_MESSAGE.toString()) &&
+                !input.startsWith(CommandType.CLOSE_CHAT.toString())) {
+            return user == null ? input : input + " " + user.username();
         }
 
-        chatState = ChatState.NOT_IN_CHAT;
-        chatRelatedName = null;
+        return input + " " + user.username() + " " + chatRelatedName + " " + chatState.getIntValue();
     }
 
-    private String processInputForServer(String input) {
-        return user == null ? input : input + " " + user.username();
-    }
-
-    private void processResponse(CommandType type, String reply) {
+    private void processResponse(CommandType type, String reply, SocketChannel channel) {
         switch (type) {
             case REGISTER,
-                ADD_FRIEND,
-                REMOVE_FRIEND,
-                ACCEPT_REQUEST,
-                DECLINE_REQUEST,
-                BLOCK,
-                UNBLOCK -> System.out.println(reply);
+                    ADD_FRIEND,
+                    REMOVE_FRIEND,
+                    ACCEPT_REQUEST,
+                    DECLINE_REQUEST,
+                    BLOCK,
+                    UNBLOCK,
+                    CREATE_GROUP,
+                    DELETE_GROUP,
+                    ADD_TO_GROUP,
+                    REMOVE_FROM_GROUP -> System.out.println(reply);
             case LOGIN -> processLogin(reply);
             case CHECK_REQUESTS -> processCheckRequests(reply);
             case LIST_FRIENDS -> processListFriends(reply);
+            case OPEN_CHAT -> processOpenChat(reply, channel);
+            case CLOSE_CHAT -> processCloseChat();
+            case OPEN_GROUP -> processOpenGroup(reply, channel);
             case CHECK_INBOX -> processCheckInbox(reply);
         }
     }
@@ -187,24 +222,24 @@ public class ChattyClient {
         System.out.println("*** Notifications ***");
 
         Set<String> personalMessages = notifications.stream()
-            .filter(n -> n.type().equals(NotificationType.PERSONAL_MESSAGE))
-            .map(Notification::content)
-            .collect(Collectors.toSet());
+                .filter(n -> n.type().equals(NotificationType.PERSONAL_MESSAGE))
+                .map(Notification::content)
+                .collect(Collectors.toSet());
 
         Set<String> groupMessages = notifications.stream()
-            .filter(n -> n.type().equals(NotificationType.GROUP_MESSAGE))
-            .map(Notification::content)
-            .collect(Collectors.toSet());
+                .filter(n -> n.type().equals(NotificationType.GROUP_MESSAGE))
+                .map(Notification::content)
+                .collect(Collectors.toSet());
 
         Set<String> friendRequests = notifications.stream()
-            .filter(n -> n.type().equals(NotificationType.FRIEND_REQUEST))
-            .map(Notification::content)
-            .collect(Collectors.toSet());
+                .filter(n -> n.type().equals(NotificationType.FRIEND_REQUEST))
+                .map(Notification::content)
+                .collect(Collectors.toSet());
 
         Set<String> others = notifications.stream()
-            .filter(n -> n.type().equals(NotificationType.OTHER))
-            .map(Notification::content)
-            .collect(Collectors.toSet());
+                .filter(n -> n.type().equals(NotificationType.OTHER))
+                .map(Notification::content)
+                .collect(Collectors.toSet());
 
         if (!personalMessages.isEmpty()) {
             System.out.println("* Personal messages:\n" + String.join("\n", personalMessages));
@@ -245,6 +280,53 @@ public class ChattyClient {
         } catch (JsonSyntaxException e) {
             System.out.println(reply);
         }
+    }
+
+    private void processOpenChat(String reply, SocketChannel channel) {
+        try {
+            PersonalChatDTO chat = gson.fromJson(reply, PersonalChatDTO.class);
+
+            chatState = ChatState.PERSONAL;
+            chatRelatedName = chat.friend();
+
+            printChat(chat.messages());
+
+            new ChatObserverThread(channel, chatState, buffer).start();
+        } catch (JsonSyntaxException e) {
+            System.out.println(reply);
+        }
+    }
+
+    private void processOpenGroup(String reply, SocketChannel channel) {
+        try {
+            GroupChatDTO chat = gson.fromJson(reply, GroupChatDTO.class);
+
+            chatState = ChatState.GROUP;
+            chatRelatedName = chat.name();
+
+            printChat(chat.messages());
+
+            new ChatObserverThread(channel, chatState, buffer).start();
+        } catch (JsonSyntaxException e) {
+            System.out.println(reply);
+        }
+    }
+
+    private void printChat(SequencedCollection<Message> messages) {
+        System.out.println("*** Chat ***");
+
+        if (messages.isEmpty()) {
+            System.out.println("There are no messages in this chat yet. Say Hi!");
+        } else {
+            messages.forEach(m -> System.out.println("[" + m.sender().username() + "] " + m.text()));
+        }
+
+        System.out.println();
+    }
+
+    private void processCloseChat() {
+        chatState = ChatState.NOT_IN_CHAT;
+        chatRelatedName = null;
     }
 
     private void processCheckInbox(String reply) {

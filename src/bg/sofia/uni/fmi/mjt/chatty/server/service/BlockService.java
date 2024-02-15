@@ -39,8 +39,8 @@ public class BlockService implements BlockServiceAPI {
         BlockRepository.getInstance().add(new Block(blockerUser, blockedUser));
 
         String notificationContent = blockerUser.getFullName() + " blocked you";
-        NotificationRepository.getInstance()
-            .add(new Notification(blockedUser, NotificationType.OTHER, notificationContent));
+        NotificationService.getInstance()
+                .addNotification(blockedUser, NotificationType.OTHER, notificationContent);
     }
 
     @Override
@@ -52,17 +52,17 @@ public class BlockService implements BlockServiceAPI {
         User unblockedUser = UserService.getInstance().ensureUserExists(unblocked);
 
         BlockRepository.getInstance()
-            .remove(b -> b.blocker().equals(unblockerUser) && b.blocked().equals(unblockedUser));
+                .remove(b -> b.blocker().equals(unblockerUser) && b.blocked().equals(unblockedUser));
 
         String notificationContent = unblockerUser.getFullName() + " unblocked you";
-        NotificationRepository.getInstance()
-            .add(new Notification(unblockedUser, NotificationType.OTHER, notificationContent));
+        NotificationService.getInstance()
+                .addNotification(unblockedUser, NotificationType.OTHER, notificationContent);
     }
 
     @Override
     public boolean checkBlock(User blocker, User blocked) {
         return BlockRepository.getInstance()
-            .contains(b -> b.blocker().equals(blocker) && b.blocked().equals(blocked));
+                .contains(b -> b.blocker().equals(blocker) && b.blocked().equals(blocked));
     }
 
 }
