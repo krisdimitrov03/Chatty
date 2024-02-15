@@ -1,4 +1,4 @@
-package bg.sofia.uni.fmi.mjt.chatty.dto;
+package bg.sofia.uni.fmi.mjt.chatty.server.model.dto;
 
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
 

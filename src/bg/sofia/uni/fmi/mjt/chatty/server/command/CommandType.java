@@ -17,6 +17,7 @@ public enum CommandType {
     LIST_FRIENDS("list-friends"),
     BLOCK("block"),
     UNBLOCK("unblock"),
+    LIST_BLOCKED("list-blocked"),
     OPEN_CHAT("open-chat"),
     CLOSE_CHAT("close-chat"),
     SEND_MESSAGE("send"),
@@ -24,14 +25,16 @@ public enum CommandType {
     DELETE_GROUP("delete-group"),
     ADD_TO_GROUP("add-to-group"),
     REMOVE_FROM_GROUP("remove-from-group"),
+    LEAVE_GROUP("leave"),
     OPEN_GROUP("open-group"),
+    LIST_GROUPS("list-groups"),
     CHECK_INBOX("check-inbox"),
     HELP("help"),
     UNKNOWN("unknown");
 
     private final String value;
 
-    private CommandType(String value) {
+    CommandType(String value) {
         this.value = value;
     }
 
@@ -43,9 +46,9 @@ public enum CommandType {
         Guard.isNotNull(value);
 
         return Arrays.stream(values())
-            .filter(v -> v.toString().equals(value))
-            .findFirst()
-            .orElse(UNKNOWN);
+                .filter(v -> v.toString().equals(value))
+                .findFirst()
+                .orElse(UNKNOWN);
     }
 
 }

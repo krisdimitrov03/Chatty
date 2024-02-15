@@ -1,14 +1,18 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
-import bg.sofia.uni.fmi.mjt.chatty.dto.GroupChatDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.AccessDeniedException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyInGroupException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
-import bg.sofia.uni.fmi.mjt.chatty.server.model.*;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.Message;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.PersonalChat;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.GroupChat;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.GroupChatRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.PersonalChatRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -38,7 +42,11 @@ public class ChatService implements ChatServiceAPI {
 
         FriendshipService.getInstance().ensureFriendshipExists(leftUser, rightUser);
 
-        return PersonalChatRepository.getInstance().get(p -> p.getUsers().containsAll(Set.of(leftUser, rightUser))).stream().findFirst().orElseThrow(() -> new ValueNotFoundException("Personal chat not available"));
+        return PersonalChatRepository.getInstance()
+                .get(p -> p.getUsers().containsAll(Set.of(leftUser, rightUser)))
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new ValueNotFoundException("Personal chat not available"));
     }
 
     @Override
@@ -74,7 +82,9 @@ public class ChatService implements ChatServiceAPI {
     }
 
     @Override
-    public void createGroupChat(String name, String username) throws ValueNotFoundException, UserAlreadyInGroupException {
+    public void createGroupChat(String name, String username)
+            throws ValueNotFoundException, UserAlreadyInGroupException {
+
         Guard.isNotNull(name);
         Guard.isNotNull(username);
 
@@ -83,6 +93,7 @@ public class ChatService implements ChatServiceAPI {
         ensureNoGroupChatForUser(name, user);
 
         GroupChatRepository.getInstance().add(new GroupChat(name, user));
+
     }
 
     @Override
@@ -108,6 +119,19 @@ public class ChatService implements ChatServiceAPI {
         ensureUserInGroupChat(chat, user);
 
         return chat;
+    }
+
+    @Override
+    public Collection<String> getGroupChatsForUser(String username) throws ValueNotFoundException {
+        Guard.isNotNull(username);
+
+        User user = UserService.getInstance().ensureUserExists(username);
+
+        return GroupChatRepository.getInstance()
+                .get(c -> c.getUsers().contains(user))
+                .stream()
+                .map(GroupChat::getName)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -138,7 +162,9 @@ public class ChatService implements ChatServiceAPI {
     }
 
     @Override
-    public void removeFromGroupChat(String name, String remover, String removed) throws ValueNotFoundException, AccessDeniedException {
+    public void removeFromGroupChat(String name, String remover, String removed)
+            throws ValueNotFoundException, AccessDeniedException {
+
         Guard.isNotNull(name);
         Guard.isNotNull(remover);
         Guard.isNotNull(removed);
@@ -160,6 +186,21 @@ public class ChatService implements ChatServiceAPI {
 
         NotificationService.getInstance()
                 .addNotification(removedUser, NotificationType.OTHER, "You have been kicked from " + name);
+
+    }
+
+    @Override
+    public void leaveGroupChat(String name, String username) throws ValueNotFoundException {
+        Guard.isNotNull(name);
+        Guard.isNotNull(username);
+
+        User user = UserService.getInstance().ensureUserExists(username);
+        GroupChat chat = ensureGroupChatExists(name);
+
+        ensureUserInGroupChat(chat, user);
+
+        chat.removeUser(user);
+        GroupChatRepository.getInstance().saveEntities();
     }
 
     @Override
@@ -186,7 +227,11 @@ public class ChatService implements ChatServiceAPI {
     }
 
     private PersonalChat ensurePersonalChatExists(User left, User right) throws ValueNotFoundException {
-        return PersonalChatRepository.getInstance().get(p -> p.getUsers().containsAll(Set.of(left, right))).stream().findFirst().orElseThrow(() -> new ValueNotFoundException("Personal chat does not exist"));
+        return PersonalChatRepository.getInstance()
+                .get(p -> p.getUsers().containsAll(Set.of(left, right)))
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new ValueNotFoundException("Personal chat does not exist"));
     }
 
     private GroupChat ensureGroupChatExists(String name) throws ValueNotFoundException {
@@ -210,7 +255,8 @@ public class ChatService implements ChatServiceAPI {
     }
 
     private void ensureNoGroupChatForUser(String name, User user) throws UserAlreadyInGroupException {
-        if (GroupChatRepository.getInstance().contains(c -> c.getName().equals(name) && c.getUsers().contains(user))) {
+        if (GroupChatRepository.getInstance()
+                .contains(c -> c.getName().equals(name) && c.getUsers().contains(user))) {
             throw new UserAlreadyInGroupException("You are already in chat named " + name);
         }
     }

@@ -1,6 +1,6 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
-import bg.sofia.uni.fmi.mjt.chatty.dto.SessionDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.SessionDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
@@ -14,8 +14,6 @@ public interface UserServiceAPI {
         throws UserAlreadyExistsException;
 
     SessionDTO login(String username, String password) throws ValueNotFoundException;
-
-    User ensureUserExists(User user) throws ValueNotFoundException;
 
     User ensureUserExists(String username) throws ValueNotFoundException;
 

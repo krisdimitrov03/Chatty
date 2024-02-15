@@ -2,7 +2,11 @@ package bg.sofia.uni.fmi.mjt.chatty.server.model;
 
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.Set;
+import java.util.SequencedCollection;
 
 public class GroupChat extends Chat implements Entity {
 
@@ -12,20 +16,6 @@ public class GroupChat extends Chat implements Entity {
 
     public GroupChat(String name, User admin) {
         super(new LinkedHashSet<>(Set.of(admin)), new LinkedList<>());
-
-        this.admin = admin;
-        this.name = name;
-    }
-
-    public GroupChat(String name, Collection<User> users, User admin) {
-        super(users, new LinkedList<>());
-
-        this.admin = admin;
-        this.name = name;
-    }
-
-    public GroupChat(String name, Collection<User> users, User admin, SequencedCollection<Message> messages) {
-        super(users, messages);
 
         this.admin = admin;
         this.name = name;

@@ -1,13 +1,15 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
-import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.BlockRepository;
-import bg.sofia.uni.fmi.mjt.chatty.server.repository.NotificationRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
+
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class BlockService implements BlockServiceAPI {
 
@@ -57,6 +59,19 @@ public class BlockService implements BlockServiceAPI {
         String notificationContent = unblockerUser.getFullName() + " unblocked you";
         NotificationService.getInstance()
                 .addNotification(unblockedUser, NotificationType.OTHER, notificationContent);
+    }
+
+    @Override
+    public Collection<UserDTO> getBlockedBy(String blocker) throws ValueNotFoundException {
+        Guard.isNotNull(blocker);
+
+        User blockerUser = UserService.getInstance().ensureUserExists(blocker);
+
+        return BlockRepository.getInstance()
+                .get(b -> b.blocker().equals(blockerUser))
+                .stream()
+                .map(b -> new UserDTO(b.blocked().getFullName(), b.blocked().username()))
+                .collect(Collectors.toSet());
     }
 
     @Override

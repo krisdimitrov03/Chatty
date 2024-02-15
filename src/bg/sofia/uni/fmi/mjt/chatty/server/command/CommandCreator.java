@@ -6,6 +6,8 @@ import java.util.List;
 
 public class CommandCreator {
 
+    private static final int MAX_SPLIT_BY_QUOTE_TOKENS_COUNT = 3;
+
     public static Command newCommand(String input) {
         List<String> tokens = getTokens(input);
         String[] args = tokens.subList(1, tokens.size()).toArray(new String[0]);
@@ -20,7 +22,7 @@ public class CommandCreator {
 
         String[] tokensByQuote = input.split("\"");
 
-        if (tokensByQuote.length != 3) {
+        if (tokensByQuote.length != MAX_SPLIT_BY_QUOTE_TOKENS_COUNT) {
             throw new IllegalArgumentException("Incorrect command format");
         }
 

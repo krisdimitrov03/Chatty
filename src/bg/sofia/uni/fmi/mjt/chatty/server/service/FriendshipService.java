@@ -1,19 +1,17 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
-import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.FriendRequestAlreadySentException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.FriendshipAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.FriendRequest;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Friendship;
-import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.PersonalChat;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.FriendRequestRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.FriendshipRepository;
-import bg.sofia.uni.fmi.mjt.chatty.server.repository.NotificationRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.PersonalChatRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
 
@@ -150,7 +148,7 @@ public class FriendshipService implements FriendshipServiceAPI {
     public void ensureNoFriendship(User left, User right) throws FriendshipAlreadyExistsException {
         if (FriendshipRepository.getInstance()
                 .contains(f -> f.containsUser(left) && f.containsUser(right))) {
-            throw new FriendshipAlreadyExistsException("You are already friends with " + right);
+            throw new FriendshipAlreadyExistsException("You are already friends with " + right.username());
         }
     }
 

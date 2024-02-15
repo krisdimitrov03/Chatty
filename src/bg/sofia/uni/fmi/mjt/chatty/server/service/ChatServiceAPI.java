@@ -6,6 +6,8 @@ import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.GroupChat;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.PersonalChat;
 
+import java.util.Collection;
+
 public interface ChatServiceAPI {
 
     PersonalChat getPersonalChat(String left, String right) throws ValueNotFoundException;
@@ -20,9 +22,15 @@ public interface ChatServiceAPI {
 
     GroupChat getGroupChat(String name, String username) throws ValueNotFoundException;
 
-    void addToGroupChat(String name, String adder, String added) throws ValueNotFoundException, AccessDeniedException, UserAlreadyInGroupException;
+    Collection<String> getGroupChatsForUser(String username) throws ValueNotFoundException;
 
-    void removeFromGroupChat(String name, String remover, String removed) throws ValueNotFoundException, AccessDeniedException;
+    void addToGroupChat(String name, String adder, String added)
+            throws ValueNotFoundException, AccessDeniedException, UserAlreadyInGroupException;
+
+    void removeFromGroupChat(String name, String remover, String removed)
+            throws ValueNotFoundException, AccessDeniedException;
+
+    void leaveGroupChat(String name, String username) throws ValueNotFoundException;
 
     void sendGroupMessage(String chatName, String sender, String text) throws ValueNotFoundException;
 

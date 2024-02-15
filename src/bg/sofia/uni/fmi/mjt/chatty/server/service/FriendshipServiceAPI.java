@@ -1,6 +1,6 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
-import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.FriendRequestAlreadySentException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.FriendshipAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserBlockedException;
@@ -25,6 +25,6 @@ public interface FriendshipServiceAPI {
 
     void declineRequest(String decliner, String target) throws ValueNotFoundException;
 
-    public void ensureFriendshipExists(User left, User right) throws ValueNotFoundException;
+    void ensureFriendshipExists(User left, User right) throws ValueNotFoundException;
 
 }

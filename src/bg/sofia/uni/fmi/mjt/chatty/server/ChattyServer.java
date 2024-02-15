@@ -1,5 +1,6 @@
 package bg.sofia.uni.fmi.mjt.chatty.server;
 
+import bg.sofia.uni.fmi.mjt.chatty.client.ChatState;
 import bg.sofia.uni.fmi.mjt.chatty.server.command.CommandCreator;
 import bg.sofia.uni.fmi.mjt.chatty.server.command.CommandExecutor;
 import bg.sofia.uni.fmi.mjt.chatty.server.command.CommandType;
@@ -13,11 +14,19 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class ChattyServer {
 
-    private static final int BUFFER_SIZE = 1024;
+    private static final int CHAT_STATE_INDEX_DIFF = 1;
+    private static final int LEFT_VALUE_INDEX_DIFF = 3;
+    private static final int RIGHT_VALUE_INDEX_DIFF = 2;
+
+    private static final int BUFFER_SIZE = 2048;
     private static final String HOST = "localhost";
 
     private final CommandExecutor commandExecutor;
@@ -41,12 +50,7 @@ public class ChattyServer {
 
     public void start() {
         try (ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()) {
-            selector = Selector.open();
-            configureServerSocketChannel(serverSocketChannel, selector);
-            this.buffer = ByteBuffer.allocate(BUFFER_SIZE);
-            isServerWorking = true;
-
-            System.out.println("Chatty Server is listening on port " + port + ".");
+            configureServer(serverSocketChannel);
 
             while (isServerWorking) {
                 try {
@@ -57,35 +61,7 @@ public class ChattyServer {
 
                     Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
                     while (keyIterator.hasNext()) {
-                        SelectionKey key = keyIterator.next();
-                        if (key.isReadable()) {
-                            SocketChannel clientChannel = (SocketChannel) key.channel();
-                            String clientInput = getClientInput(clientChannel);
-
-                            if (clientInput == null) {
-                                continue;
-                            }
-
-                            String[] inputTokens = clientInput.split(" ");
-
-                            switch (CommandType.of(inputTokens[0])) {
-                                case OPEN_CHAT -> registerChannelToChat(key, inputTokens);
-                                case OPEN_GROUP -> registerChannelToGroup(key, inputTokens);
-                                case CLOSE_CHAT -> removeChannelFromOpened(key, inputTokens);
-                            }
-
-                            String output = commandExecutor.execute(CommandCreator.newCommand(clientInput));
-                            writeClientOutput(clientChannel, output);
-
-                            if (CommandType.of(inputTokens[0]).equals(CommandType.SEND_MESSAGE)) {
-                                updateChannelsInChat(inputTokens, output, key);
-                            }
-
-                        } else if (key.isAcceptable()) {
-                            accept(selector, key);
-                        }
-
-                        keyIterator.remove();
+                        processClientRequest(keyIterator);
                     }
                 } catch (IllegalArgumentException e) {
                     System.out.println(CommandExecutor.INCORRECT_FORMAT_MESSAGE);
@@ -103,6 +79,52 @@ public class ChattyServer {
         if (selector.isOpen()) {
             selector.wakeup();
         }
+    }
+
+    private void processClientRequest(Iterator<SelectionKey> keyIterator) throws IOException {
+        SelectionKey key = keyIterator.next();
+        if (key.isReadable()) {
+            SocketChannel clientChannel = (SocketChannel) key.channel();
+            String clientInput = getClientInput(clientChannel);
+
+            if (clientInput == null) {
+                return;
+            }
+
+            processClientInput(clientInput, key, clientChannel);
+
+        } else if (key.isAcceptable()) {
+            accept(selector, key);
+        }
+
+        keyIterator.remove();
+    }
+
+    private void processClientInput(String clientInput, SelectionKey key, SocketChannel clientChannel)
+            throws IOException {
+        String[] inputTokens = clientInput.split(" ");
+
+        switch (CommandType.of(inputTokens[0])) {
+            case OPEN_CHAT -> registerChannelToChat(key, inputTokens);
+            case OPEN_GROUP -> registerChannelToGroup(key, inputTokens);
+            case CLOSE_CHAT -> removeChannelFromOpened(key, inputTokens);
+        }
+
+        String output = commandExecutor.execute(CommandCreator.newCommand(clientInput));
+        writeClientOutput(clientChannel, output);
+
+        if (CommandType.of(inputTokens[0]).equals(CommandType.SEND_MESSAGE)) {
+            updateChannelsInChat(inputTokens, output, key);
+        }
+    }
+
+    private void configureServer(ServerSocketChannel channel) throws IOException {
+        selector = Selector.open();
+        configureServerSocketChannel(channel, selector);
+        this.buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        isServerWorking = true;
+
+        System.out.println("Chatty Server is listening on port " + port + ".");
     }
 
     private void configureServerSocketChannel(ServerSocketChannel channel, Selector selector) throws IOException {
@@ -189,24 +211,7 @@ public class ChattyServer {
     }
 
     private void updateChannelsInChat(String[] tokens, String message, SelectionKey currentKey) {
-        Set<SelectionKey> channels;
-
-        if (Integer.parseInt(tokens[tokens.length - 1]) == 1) {
-            String leftUsername = tokens[tokens.length - 3];
-            String rightUsername = tokens[tokens.length - 2];
-
-            Map.Entry<String, String> chatKey;
-
-            if (openedPersonalChats.containsKey(Map.entry(leftUsername, rightUsername))) {
-                chatKey = Map.entry(leftUsername, rightUsername);
-            } else {
-                chatKey = Map.entry(rightUsername, leftUsername);
-            }
-
-            channels = openedPersonalChats.get(chatKey);
-        } else {
-            channels = openedGroupChats.get(tokens[tokens.length - 2]);
-        }
+        Set<SelectionKey> channels = getChannelsToBeUpdated(tokens);
 
         if (channels.isEmpty()) {
             return;
@@ -219,6 +224,33 @@ public class ChattyServer {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    private Set<SelectionKey> getChannelsToBeUpdated(String[] tokens) {
+        Set<SelectionKey> channels;
+
+        String chatStateValue = tokens[tokens.length - CHAT_STATE_INDEX_DIFF];
+
+        if (Integer.parseInt(chatStateValue) == ChatState.PERSONAL.getIntValue()) {
+            String leftUsername = tokens[tokens.length - LEFT_VALUE_INDEX_DIFF];
+            String rightUsername = tokens[tokens.length - RIGHT_VALUE_INDEX_DIFF];
+
+            Map.Entry<String, String> chatKey;
+
+            if (openedPersonalChats.containsKey(Map.entry(leftUsername, rightUsername))) {
+                chatKey = Map.entry(leftUsername, rightUsername);
+            } else {
+                chatKey = Map.entry(rightUsername, leftUsername);
+            }
+
+            channels = openedPersonalChats.get(chatKey);
+        } else {
+            String groupName = tokens[tokens.length - RIGHT_VALUE_INDEX_DIFF];
+
+            channels = openedGroupChats.get(groupName);
+        }
+
+        return channels;
     }
 
 }

@@ -36,6 +36,7 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
                 }
             }
         } catch (EOFException ignored) {
+            // if the db files are empty
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException("Incorrect data format");
         }
@@ -67,8 +68,8 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
 
         synchronized (entities) {
             return entities.stream()
-                .filter(criteria)
-                .collect(Collectors.toSet());
+                    .filter(criteria)
+                    .collect(Collectors.toSet());
         }
     }
 

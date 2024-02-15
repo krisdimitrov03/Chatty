@@ -22,15 +22,13 @@ public class ChatObserverThread extends Thread {
     @Override
     public void run() {
         while (!chatState.equals(ChatState.NOT_IN_CHAT)) {
-            byte[] byteArray;
-
             try {
                 buffer.clear();
                 channel.read(buffer);
 
                 buffer.flip();
 
-                byteArray = new byte[buffer.remaining()];
+                byte[] byteArray = new byte[buffer.remaining()];
                 buffer.get(byteArray);
 
                 String reply = new String(byteArray, StandardCharsets.UTF_8);

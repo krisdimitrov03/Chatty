@@ -1,9 +1,9 @@
 package bg.sofia.uni.fmi.mjt.chatty.client;
 
-import bg.sofia.uni.fmi.mjt.chatty.dto.GroupChatDTO;
-import bg.sofia.uni.fmi.mjt.chatty.dto.PersonalChatDTO;
-import bg.sofia.uni.fmi.mjt.chatty.dto.SessionDTO;
-import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.GroupChatDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.PersonalChatDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.SessionDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.server.command.CommandType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Message;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
@@ -16,14 +16,17 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.Collection;
+import java.util.SequencedCollection;
 import java.util.stream.Collectors;
 
 public class ChattyClient {
 
     private static final int SERVER_PORT = 3000;
     private static final String SERVER_HOST = "localhost";
-    private static final int BUFFER_SIZE = 1024;
+    private static final int BUFFER_SIZE = 2048;
 
     private final ByteBuffer buffer;
     private final Gson gson;
@@ -44,6 +47,7 @@ public class ChattyClient {
 
             while (true) {
                 String input = scanner.nextLine();
+
                 if ("quit".equals(input)) {
                     if (!chatState.equals(ChatState.NOT_IN_CHAT)) {
                         System.out.println("Close the chat before quitting.");
@@ -55,40 +59,51 @@ public class ChattyClient {
 
                 CommandType type = CommandType.of(input.split(" ")[0]);
 
-                if (!checkAuthorization(type)) {
+                if (!validateBeforeSending(type, input)) {
                     continue;
-                }
-
-                if (isLocalCommand(type)) {
-                    processLocalCommand(type, input);
-                    continue;
-                }
-
-                if (!checkInChatForSend(type)) {
-                    continue;
-                }
-
-                if (type.equals(CommandType.CLOSE_CHAT)) {
-                    if (chatState.equals(ChatState.NOT_IN_CHAT)) {
-                        System.out.println("You are not in chat");
-                        continue;
-                    }
                 }
 
                 sendRequest(socketChannel, processInputForServer(input));
-
-                if (type.equals(CommandType.CLOSE_CHAT)) {
-                    processCloseChat();
-                }
-
-                if (chatState.equals(ChatState.NOT_IN_CHAT)) {
-                    String reply = getResponse(socketChannel);
-                    processResponse(type, reply, socketChannel);
-                }
+                processAfter(type, socketChannel);
             }
         } catch (IOException e) {
             throw new RuntimeException("There is a problem with the network communication", e);
         }
+    }
+
+    private void processAfter(CommandType type, SocketChannel socketChannel) throws IOException {
+        if (type.equals(CommandType.CLOSE_CHAT)) {
+            processCloseChat();
+        }
+
+        if (chatState.equals(ChatState.NOT_IN_CHAT)) {
+            String reply = getResponse(socketChannel);
+            processResponse(type, reply, socketChannel);
+        }
+    }
+
+    private boolean validateBeforeSending(CommandType type, String input) {
+        if (!checkAuthorization(type)) {
+            return false;
+        }
+
+        if (isLocalCommand(type)) {
+            processLocalCommand(type);
+            return false;
+        }
+
+        if (!checkInChatForSend(type)) {
+            return false;
+        }
+
+        if (type.equals(CommandType.CLOSE_CHAT)) {
+            if (chatState.equals(ChatState.NOT_IN_CHAT)) {
+                System.out.println("You are not in chat");
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void sendRequest(SocketChannel socketChannel, String input) throws IOException {
@@ -147,7 +162,7 @@ public class ChattyClient {
         ).contains(commandType);
     }
 
-    private void processLocalCommand(CommandType type, String input) {
+    private void processLocalCommand(CommandType type) {
         switch (type) {
             case UNKNOWN -> System.out.println("Unknown command. Type 'help' to see available commands");
             case HELP -> processHelp();
@@ -188,7 +203,8 @@ public class ChattyClient {
                     CREATE_GROUP,
                     DELETE_GROUP,
                     ADD_TO_GROUP,
-                    REMOVE_FROM_GROUP -> System.out.println(reply);
+                    REMOVE_FROM_GROUP,
+                    LEAVE_GROUP -> System.out.println(reply);
             case LOGIN -> processLogin(reply);
             case CHECK_REQUESTS -> processCheckRequests(reply);
             case LIST_FRIENDS -> processListFriends(reply);
@@ -196,6 +212,8 @@ public class ChattyClient {
             case CLOSE_CHAT -> processCloseChat();
             case OPEN_GROUP -> processOpenGroup(reply, channel);
             case CHECK_INBOX -> processCheckInbox(reply);
+            case LIST_BLOCKED -> processListBlocked(reply);
+            case LIST_GROUPS -> processListGroups(reply);
         }
     }
 
@@ -221,41 +239,30 @@ public class ChattyClient {
 
         System.out.println("*** Notifications ***");
 
-        Set<String> personalMessages = notifications.stream()
-                .filter(n -> n.type().equals(NotificationType.PERSONAL_MESSAGE))
+        printNotificationsForType(NotificationType.PERSONAL_MESSAGE, notifications);
+        printNotificationsForType(NotificationType.GROUP_MESSAGE, notifications);
+        printNotificationsForType(NotificationType.FRIEND_REQUEST, notifications);
+        printNotificationsForType(NotificationType.OTHER, notifications);
+    }
+
+    private void printNotificationsForType(NotificationType type, Collection<Notification> allNotifications) {
+        Set<String> notifications = allNotifications.stream()
+                .filter(n -> n.type().equals(type))
                 .map(Notification::content)
                 .collect(Collectors.toSet());
 
-        Set<String> groupMessages = notifications.stream()
-                .filter(n -> n.type().equals(NotificationType.GROUP_MESSAGE))
-                .map(Notification::content)
-                .collect(Collectors.toSet());
-
-        Set<String> friendRequests = notifications.stream()
-                .filter(n -> n.type().equals(NotificationType.FRIEND_REQUEST))
-                .map(Notification::content)
-                .collect(Collectors.toSet());
-
-        Set<String> others = notifications.stream()
-                .filter(n -> n.type().equals(NotificationType.OTHER))
-                .map(Notification::content)
-                .collect(Collectors.toSet());
-
-        if (!personalMessages.isEmpty()) {
-            System.out.println("* Personal messages:\n" + String.join("\n", personalMessages));
+        if (notifications.isEmpty()) {
+            return;
         }
 
-        if (!groupMessages.isEmpty()) {
-            System.out.println("* Group messages:\n" + String.join("\n", groupMessages));
+        switch (type) {
+            case PERSONAL_MESSAGE -> System.out.println("* Personal messages:");
+            case GROUP_MESSAGE -> System.out.println("* Group messages:");
+            case FRIEND_REQUEST -> System.out.println("* Friend requests:");
+            case OTHER -> System.out.println("* Other:");
         }
 
-        if (!friendRequests.isEmpty()) {
-            System.out.println("* Friend requests:\n" + String.join("\n", friendRequests));
-        }
-
-        if (!others.isEmpty()) {
-            System.out.println("* Other:\n" + String.join("\n", others));
-        }
+        System.out.println(String.join("\n", notifications));
     }
 
     private void processListFriends(String reply) {
@@ -335,6 +342,30 @@ public class ChattyClient {
             Collection<Notification> notifications = Set.of(notificationsArr);
 
             printNotifications(notifications);
+        } catch (JsonSyntaxException e) {
+            System.out.println(reply);
+        }
+    }
+
+    private void processListGroups(String reply) {
+        try {
+            String[] groupsArr = gson.fromJson(reply, String[].class);
+            Collection<String> groups = Set.of(groupsArr);
+
+            System.out.println("Groups:");
+            groups.forEach(System.out::println);
+        } catch (JsonSyntaxException e) {
+            System.out.println(reply);
+        }
+    }
+
+    private void processListBlocked(String reply) {
+        try {
+            UserDTO[] usersArr = gson.fromJson(reply, UserDTO[].class);
+            Collection<UserDTO> users = Set.of(usersArr);
+
+            System.out.println("Blocked users:");
+            users.forEach(u -> System.out.println(u.fullName() + " [" + u.username() + "]"));
         } catch (JsonSyntaxException e) {
             System.out.println(reply);
         }

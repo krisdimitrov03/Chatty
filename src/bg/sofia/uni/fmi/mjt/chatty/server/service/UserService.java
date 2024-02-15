@@ -1,7 +1,7 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
-import bg.sofia.uni.fmi.mjt.chatty.dto.SessionDTO;
-import bg.sofia.uni.fmi.mjt.chatty.dto.UserDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.SessionDTO;
+import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.exception.UserAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
@@ -65,15 +65,6 @@ public class UserService implements UserServiceAPI {
         UserDTO userDto = new UserDTO(user.get().getFullName(), user.get().username());
 
         return new SessionDTO(userDto, NotificationService.getInstance().getNotificationsOf(username));
-    }
-
-    @Override
-    public User ensureUserExists(User user) throws ValueNotFoundException {
-        return UserRepository.getInstance()
-            .get(u -> u.equals(user))
-            .stream()
-            .findFirst()
-            .orElseThrow(() -> new ValueNotFoundException("User not found"));
     }
 
     @Override
