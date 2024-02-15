@@ -5,7 +5,7 @@ import bg.sofia.uni.fmi.mjt.chatty.server.model.Notification;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.NotificationRepository;
-import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
+import bg.sofia.uni.fmi.mjt.chatty.server.security.Guard;
 
 import java.util.Collection;
 

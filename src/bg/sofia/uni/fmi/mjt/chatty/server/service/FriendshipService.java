@@ -13,7 +13,7 @@ import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.FriendRequestRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.FriendshipRepository;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.PersonalChatRepository;
-import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
+import bg.sofia.uni.fmi.mjt.chatty.server.security.Guard;
 
 import java.util.Collection;
 import java.util.Map;

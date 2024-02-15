@@ -1,4 +1,4 @@
-package bg.sofia.uni.fmi.mjt.chatty.server.validation;
+package bg.sofia.uni.fmi.mjt.chatty.server.security;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

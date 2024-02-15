@@ -6,7 +6,7 @@ import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.NotificationType;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.BlockRepository;
-import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
+import bg.sofia.uni.fmi.mjt.chatty.server.security.Guard;
 
 import java.util.Collection;
 import java.util.stream.Collectors;

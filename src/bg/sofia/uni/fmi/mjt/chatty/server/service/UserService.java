@@ -6,7 +6,8 @@ import bg.sofia.uni.fmi.mjt.chatty.server.exception.UserAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.chatty.server.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.User;
 import bg.sofia.uni.fmi.mjt.chatty.server.repository.UserRepository;
-import bg.sofia.uni.fmi.mjt.chatty.server.validation.Guard;
+import bg.sofia.uni.fmi.mjt.chatty.server.security.Guard;
+import bg.sofia.uni.fmi.mjt.chatty.server.security.SHA256;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -45,7 +46,7 @@ public class UserService implements UserServiceAPI {
         }
 
         UserRepository.getInstance()
-            .add(new User(firstName, lastName, username, hashPassword(password)));
+            .add(new User(firstName, lastName, username, SHA256.hashPassword(password)));
     }
 
     @Override
@@ -54,7 +55,7 @@ public class UserService implements UserServiceAPI {
         Guard.isNotNull(password);
 
         Predicate<User> loginCriteria =
-            u -> u.username().equals(username) && u.passwordHash().equals(hashPassword(password));
+            u -> u.username().equals(username) && u.passwordHash().equals(SHA256.hashPassword(password));
 
         Optional<User> user = UserRepository.getInstance().get(loginCriteria).stream().findAny();
 
@@ -81,10 +82,6 @@ public class UserService implements UserServiceAPI {
         Guard.isNotNull(criteria);
 
         return UserRepository.getInstance().get(criteria);
-    }
-
-    private String hashPassword(String password) {
-        return String.valueOf(password.hashCode());
     }
 
 }

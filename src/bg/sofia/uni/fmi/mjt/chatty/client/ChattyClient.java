@@ -171,7 +171,33 @@ public class ChattyClient {
     }
 
     private void processHelp() {
-        System.out.println("Help");
+        System.out.println("""
+                *** Commands ***
+                                
+                - register <first_name> <last_name> <username> <password>
+                - login <username> <password>
+                - logout
+                - add-friend <username>
+                - check-requests
+                - accept <username>
+                - decline <username>
+                - list-friends
+                - remove-friend <username>
+                - block <username>
+                - unblock <username>
+                - list-blocked
+                - open-chat <username>
+                - send "<message>"
+                - close-chat
+                - create-group <group-name>
+                - delete-group <group-name>
+                - add-to-group <username> <group-name>
+                - remove-from-group <username> <group-name>
+                - leave <group-name>
+                - list-groups
+                - open-group <group-name>
+                - close-chat
+                - check-inbox""");
     }
 
     private void processLogout() {
