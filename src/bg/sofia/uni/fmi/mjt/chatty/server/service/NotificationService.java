@@ -51,4 +51,5 @@ public class NotificationService implements NotificationServiceAPI {
         NotificationRepository.getInstance()
                 .add(new Notification(user, type, content));
     }
+
 }

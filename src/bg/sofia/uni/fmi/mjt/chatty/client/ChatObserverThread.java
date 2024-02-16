@@ -48,4 +48,5 @@ public class ChatObserverThread extends Thread {
             }
         }
     }
+
 }

@@ -26,12 +26,12 @@ import java.util.Collection;
 
 public class CommandExecutor {
 
-    public static final int CHAT_STATE_ARG_INDEX = 3;
-    public static final int PASSWORD_ARG_INDEX = 3;
-    public static final int ONE_ARG_MAX_ALLOWED_ARG_COUNT = 1;
-    public static final int TWO_ARG_MAX_ALLOWED_ARG_COUNT = 2;
-    public static final int THREE_ARG_MAX_ALLOWED_ARG_COUNT = 3;
-    public static final int FOUR_ARG_MAX_ALLOWED_ARG_COUNT = 4;
+    private static final int CHAT_STATE_ARG_INDEX = 3;
+    private static final int PASSWORD_ARG_INDEX = 3;
+    private static final int ONE_ARG_MAX_ALLOWED_ARG_COUNT = 1;
+    private static final int TWO_ARG_MAX_ALLOWED_ARG_COUNT = 2;
+    private static final int THREE_ARG_MAX_ALLOWED_ARG_COUNT = 3;
+    private static final int FOUR_ARG_MAX_ALLOWED_ARG_COUNT = 4;
     public static final String INCORRECT_FORMAT_MESSAGE = "Input is not in correct format";
 
     private final UserServiceAPI userService;
