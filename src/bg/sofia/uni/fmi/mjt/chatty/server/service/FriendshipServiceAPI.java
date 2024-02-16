@@ -13,9 +13,8 @@ public interface FriendshipServiceAPI {
 
     Collection<UserDTO> getFriendsOf(String username) throws ValueNotFoundException;
 
-    void addFriend(String sender, String target)
-        throws ValueNotFoundException, UserBlockedException, FriendshipAlreadyExistsException,
-        FriendRequestAlreadySentException;
+    void addFriend(String sender, String target) throws ValueNotFoundException, UserBlockedException,
+            FriendshipAlreadyExistsException, FriendRequestAlreadySentException;
 
     void removeFriend(String remover, String target) throws ValueNotFoundException;
 

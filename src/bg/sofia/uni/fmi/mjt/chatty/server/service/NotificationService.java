@@ -44,6 +44,10 @@ public class NotificationService implements NotificationServiceAPI {
 
     @Override
     public void addNotification(User user, NotificationType type, String content) {
+        Guard.isNotNull(user);
+        Guard.isNotNull(type);
+        Guard.isNotNull(content);
+
         NotificationRepository.getInstance()
                 .add(new Notification(user, type, content));
     }

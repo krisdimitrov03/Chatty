@@ -145,21 +145,21 @@ public class FriendshipService implements FriendshipServiceAPI {
 
     }
 
-    public void ensureNoFriendship(User left, User right) throws FriendshipAlreadyExistsException {
+    private void ensureNoFriendship(User left, User right) throws FriendshipAlreadyExistsException {
         if (FriendshipRepository.getInstance()
                 .contains(f -> f.containsUser(left) && f.containsUser(right))) {
             throw new FriendshipAlreadyExistsException("You are already friends with " + right.username());
         }
     }
 
-    public void ensureNoFriendRequest(User left, User right, String message) throws FriendRequestAlreadySentException {
+    private void ensureNoFriendRequest(User left, User right, String message) throws FriendRequestAlreadySentException {
         if (FriendRequestRepository.getInstance()
                 .contains(f -> f.sender().equals(left) && f.receiver().equals(right))) {
             throw new FriendRequestAlreadySentException(message);
         }
     }
 
-    public Map.Entry<User, User> validateRequestOperation(String actor, String target) throws ValueNotFoundException {
+    private Map.Entry<User, User> validateRequestOperation(String actor, String target) throws ValueNotFoundException {
         Guard.isNotNull(actor);
         Guard.isNotNull(target);
 

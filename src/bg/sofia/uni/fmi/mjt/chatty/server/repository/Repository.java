@@ -6,9 +6,10 @@ import bg.sofia.uni.fmi.mjt.chatty.server.model.Entity;
 import java.io.EOFException;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -18,28 +19,30 @@ import java.util.stream.Collectors;
 public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
 
     private static final String BASE_PATH = "./src/bg/sofia/uni/fmi/mjt/chatty/server/db/";
+    private String dbPath;
 
-    private final String dbPath;
+    protected Collection<T> entities;
 
-    protected final Collection<T> entities;
+    private Repository() {
+        entities = new LinkedHashSet<>();
+    }
 
     public Repository(String path) {
-        entities = new LinkedHashSet<>();
+        this();
+
         dbPath = BASE_PATH + path;
 
-        try (var reader = new ObjectInputStream(new FileInputStream(dbPath))) {
-            if (reader.available() > 0) {
-                int size = reader.readInt();
-
-                for (int i = 0; i < size; i++) {
-                    entities.add(Entity.loadFrom(reader));
-                }
-            }
-        } catch (EOFException ignored) {
-            // if the db files are empty
-        } catch (IOException | ClassNotFoundException e) {
-            throw new RuntimeException("Incorrect data format");
+        try (var fileStream = new FileInputStream(dbPath)) {
+            readEntities(fileStream);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    public Repository(InputStream stream) {
+        this();
+
+        readEntities(stream);
     }
 
     @Override
@@ -48,9 +51,7 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
             throw new IllegalArgumentException("Value is null");
         }
 
-        synchronized (entities) {
-            entities.add(value);
-        }
+        entities.add(value);
 
         saveEntities();
     }
@@ -66,11 +67,9 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
             throw new IllegalArgumentException("Criteria is null");
         }
 
-        synchronized (entities) {
-            return entities.stream()
-                    .filter(criteria)
-                    .collect(Collectors.toSet());
-        }
+        return entities.stream()
+                .filter(criteria)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -79,9 +78,7 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
             throw new IllegalArgumentException("Criteria is null");
         }
 
-        synchronized (entities) {
-            return entities.stream().anyMatch(criteria);
-        }
+        return entities.stream().anyMatch(criteria);
     }
 
     @Override
@@ -90,9 +87,7 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
             throw new IllegalArgumentException("Element is null");
         }
 
-        synchronized (entities) {
-            return entities.contains(value);
-        }
+        return entities.contains(value);
     }
 
     @Override
@@ -101,13 +96,11 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
             throw new IllegalArgumentException("Element is null");
         }
 
-        synchronized (entities) {
-            if (!entities.contains(value)) {
-                throw new ValueNotFoundException("Value not found");
-            }
-
-            entities.remove(value);
+        if (!entities.contains(value)) {
+            throw new ValueNotFoundException("Value not found");
         }
+
+        entities.remove(value);
 
         saveEntities();
     }
@@ -118,14 +111,16 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
             throw new ValueNotFoundException("Value not found");
         }
 
-        synchronized (entities) {
-            entities.removeAll(entities.stream().filter(criteria).toList());
-        }
+        entities.removeAll(entities.stream().filter(criteria).toList());
 
         saveEntities();
     }
 
     public void saveEntities() {
+        if (dbPath == null) {
+            return;
+        }
+
         try (var stream = new ObjectOutputStream(new FileOutputStream(dbPath))) {
             if (entities.isEmpty()) {
                 stream.flush();
@@ -135,6 +130,22 @@ public abstract class Repository<T extends Entity> implements RepositoryAPI<T> {
             entities.forEach(e -> e.saveTo(stream));
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void readEntities(InputStream stream) {
+        try (var reader = new ObjectInputStream(stream)) {
+            if (reader.available() > 0) {
+                int size = reader.readInt();
+
+                for (int i = 0; i < size; i++) {
+                    entities.add(Entity.loadFrom(reader));
+                }
+            }
+        } catch (EOFException ignored) {
+            // if the db files are empty
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException("Incorrect data format");
         }
     }
 

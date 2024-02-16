@@ -247,6 +247,8 @@ public class CommandExecutor {
             return blocked + " blocked";
         } catch (ValueNotFoundException | IllegalArgumentException e) {
             return e.getMessage();
+        } catch (UserBlockedException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -30,7 +30,7 @@ public class UserService implements UserServiceAPI {
 
     @Override
     public void register(String firstName, String lastName, String username, String password)
-        throws UserAlreadyExistsException {
+            throws UserAlreadyExistsException {
         Guard.isNotNull(firstName);
         Guard.isNotNull(lastName);
         Guard.isNotNull(username);
@@ -42,11 +42,11 @@ public class UserService implements UserServiceAPI {
         Guard.isValidPassword(password);
 
         if (UserRepository.getInstance().contains(u -> u.username().equals(username))) {
-            throw new UserAlreadyExistsException("User already exists");
+            throw new UserAlreadyExistsException("User with this username already exists");
         }
 
         UserRepository.getInstance()
-            .add(new User(firstName, lastName, username, SHA256.hashPassword(password)));
+                .add(new User(firstName, lastName, username, SHA256.hashPassword(password)));
     }
 
     @Override
@@ -55,7 +55,7 @@ public class UserService implements UserServiceAPI {
         Guard.isNotNull(password);
 
         Predicate<User> loginCriteria =
-            u -> u.username().equals(username) && u.passwordHash().equals(SHA256.hashPassword(password));
+                u -> u.username().equals(username) && u.passwordHash().equals(SHA256.hashPassword(password));
 
         Optional<User> user = UserRepository.getInstance().get(loginCriteria).stream().findAny();
 
@@ -70,11 +70,10 @@ public class UserService implements UserServiceAPI {
 
     @Override
     public User ensureUserExists(String username) throws ValueNotFoundException {
-        return UserRepository.getInstance()
-            .get(u -> u.username().equals(username))
-            .stream()
-            .findFirst()
-            .orElseThrow(() -> new ValueNotFoundException("User not found"));
+        return getByCriteria(u -> u.username().equals(username))
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new ValueNotFoundException("User not found"));
     }
 
     @Override

@@ -1,5 +1,6 @@
 package bg.sofia.uni.fmi.mjt.chatty.server.service;
 
+import bg.sofia.uni.fmi.mjt.chatty.server.exception.UserBlockedException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.dto.UserDTO;
 import bg.sofia.uni.fmi.mjt.chatty.server.exception.ValueNotFoundException;
 import bg.sofia.uni.fmi.mjt.chatty.server.model.Block;
@@ -27,12 +28,16 @@ public class BlockService implements BlockServiceAPI {
     }
 
     @Override
-    public void block(String blocker, String blocked) throws ValueNotFoundException {
+    public void block(String blocker, String blocked) throws ValueNotFoundException, UserBlockedException {
         Guard.isNotNull(blocker);
         Guard.isNotNull(blocked);
 
         User blockerUser = UserService.getInstance().ensureUserExists(blocker);
         User blockedUser = UserService.getInstance().ensureUserExists(blocked);
+
+        if (checkBlock(blockerUser, blockedUser)) {
+            throw new UserBlockedException("You have already blocked " + blocked);
+        }
 
         FriendshipService.getInstance().removeFriend(blocker, blocked);
 
@@ -52,6 +57,10 @@ public class BlockService implements BlockServiceAPI {
 
         User unblockerUser = UserService.getInstance().ensureUserExists(unblocker);
         User unblockedUser = UserService.getInstance().ensureUserExists(unblocked);
+
+        if (!checkBlock(unblockerUser, unblockedUser)) {
+            throw new ValueNotFoundException("You haven't blocked " + unblocked);
+        }
 
         BlockRepository.getInstance()
                 .remove(b -> b.blocker().equals(unblockerUser) && b.blocked().equals(unblockedUser));

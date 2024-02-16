@@ -24,4 +24,8 @@ public class Friendship implements Entity {
         return users.stream().filter(u -> !u.equals(user)).findFirst();
     }
 
+    public Collection<User> getUsers() {
+        return users;
+    }
+
 }
